@@ -15,8 +15,8 @@
 
 ```bash
 # Python 3.7+ 필요
-git clone <repository-url>
-cd TodoApp
+git clone https://github.com/dlwldbs15/TODOAPP.git
+cd TODOAPP
 ```
 
 외부 의존성 없음 - Python 표준 라이브러리만 사용합니다.
@@ -25,7 +25,7 @@ cd TodoApp
 
 ### Windows
 
-1. 바탕화면의 `TODO앱.bat` 실행
+1. `run_todo.bat` 실행
 2. 또는 터미널에서:
    ```bash
    python todo_app.py
@@ -48,6 +48,7 @@ python3 todo_app.py
 ```
 TodoApp/
 ├── todo_app.py          # 메인 애플리케이션
+├── run_todo.bat         # Windows 실행 파일
 ├── requirements.txt     # 의존성 (없음)
 ├── config.json         # Vault 경로 설정 (자동 생성)
 └── README.md
