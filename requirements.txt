@@ -1,0 +1,5 @@
+# Python TODO App - Requirements
+# This app uses only Python standard library
+# No external dependencies required for basic functionality
+
+# Python 3.7+ required
