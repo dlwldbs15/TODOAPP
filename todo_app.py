@@ -270,7 +270,7 @@ class TodoApp:
         print(f"\n총 {len(todo_files)}개의 날짜 파일")
 
     def complete_todo(self):
-        """Mark a TODO as completed"""
+        """Mark TODOs as completed (supports multiple selection)"""
         if not self.vault_path:
             print("\n먼저 Obsidian vault 경로를 설정해주세요.")
             return
@@ -291,22 +291,43 @@ class TodoApp:
         for i, todo in enumerate(incomplete, 1):
             print(f"  {i}. {todo['text']}")
 
-        try:
-            choice = input("\n완료할 TODO 번호 (취소: 0): ").strip()
-            choice = int(choice)
+        print("\n여러 개 선택: 쉼표 또는 공백으로 구분 (예: 1,2,3 또는 1 2 3)")
+        print("전체 선택: all 또는 a")
 
-            if choice == 0:
+        try:
+            choice_input = input("\n완료할 TODO 번호 (취소: 0): ").strip()
+
+            if choice_input == '0':
                 return
 
-            if 1 <= choice <= len(incomplete):
-                incomplete[choice - 1]['completed'] = True
-
-                if self.save_todos(todos, date_str):
-                    print(f"✓ TODO가 완료되었습니다: {incomplete[choice - 1]['text']}")
+            # 전체 선택
+            if choice_input.lower() in ['all', 'a']:
+                choices = list(range(1, len(incomplete) + 1))
             else:
-                print("잘못된 번호입니다.")
+                # 쉼표 또는 공백으로 구분된 번호 파싱
+                choice_input = choice_input.replace(',', ' ')
+                choices = [int(c) for c in choice_input.split() if c.strip()]
+
+            if not choices:
+                print("선택된 항목이 없습니다.")
+                return
+
+            completed_items = []
+            for choice in choices:
+                if 1 <= choice <= len(incomplete):
+                    incomplete[choice - 1]['completed'] = True
+                    completed_items.append(incomplete[choice - 1]['text'])
+                else:
+                    print(f"잘못된 번호: {choice}")
+
+            if completed_items:
+                if self.save_todos(todos, date_str):
+                    print(f"\n✓ {len(completed_items)}개의 TODO가 완료되었습니다:")
+                    for item in completed_items:
+                        print(f"  - {item}")
+
         except ValueError:
-            print("숫자를 입력해주세요.")
+            print("올바른 숫자를 입력해주세요.")
 
     def show_menu(self):
         """Display main menu"""
