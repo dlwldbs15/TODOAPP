@@ -7,7 +7,8 @@ __pycache__/
 env/
 venv/
 ENV/
-build/
+# Python build (not web/build for icons)
+/build/
 dist/
 *.egg-info/
 
@@ -27,3 +28,11 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Web/Node.js
+web/node_modules/
+web/dist/
+web/dist-electron/
+web/server-dist/
+web/*.cjs
+web/electron/*.cjs
