@@ -15,7 +15,7 @@ function App() {
 
   const today = new Date().toISOString().split('T')[0]
   const [selectedDate, setSelectedDate] = useState(today)
-  const { todos, loading, addTodo, toggleTodo, deleteTodo, updateTodo, reorderTodos, refresh, currentDate } = useTodos(selectedDate)
+  const { todos, loading, addTodo, toggleTodo, togglePin, deleteTodo, updateTodo, reorderTodos, refresh, currentDate } = useTodos(selectedDate)
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', darkMode)
@@ -40,6 +40,10 @@ function App() {
 
   const handleReorder = async (oldIndex: number, newIndex: number) => {
     await reorderTodos(oldIndex, newIndex)
+  }
+
+  const handlePin = async (index: number) => {
+    await togglePin(index)
   }
 
   // 날짜 포맷 함수
@@ -107,7 +111,7 @@ function App() {
             로딩 중...
           </div>
         ) : (
-          <TodoList todos={todos} currentDate={currentDate} onToggle={handleToggle} onDelete={handleDelete} onUpdate={handleUpdate} onReorder={handleReorder} />
+          <TodoList todos={todos} currentDate={currentDate} onToggle={handleToggle} onPin={handlePin} onDelete={handleDelete} onUpdate={handleUpdate} onReorder={handleReorder} />
         )}
 
         {/* Refresh Button */}

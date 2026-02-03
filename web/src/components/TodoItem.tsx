@@ -9,6 +9,7 @@ interface TodoItemProps {
   index: number
   isCarryover?: boolean
   onToggle: (index: number) => void
+  onPin: (index: number) => void
   onDelete: (index: number) => void
   onUpdate: (index: number, text: string) => void
 }
@@ -19,7 +20,7 @@ const formatDateLabel = (dateStr: string): string => {
   return `${d.getMonth() + 1}/${d.getDate()}`
 }
 
-export function TodoItem({ id, todo, index, isCarryover = false, onToggle, onDelete, onUpdate }: TodoItemProps) {
+export function TodoItem({ id, todo, index, isCarryover = false, onToggle, onPin, onDelete, onUpdate }: TodoItemProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editText, setEditText] = useState(todo.text)
 
@@ -144,14 +145,30 @@ export function TodoItem({ id, todo, index, isCarryover = false, onToggle, onDel
         )}
       </div>
 
-      {/* Action buttons - visible on hover */}
-      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      {/* Action buttons - pin always visible if pinned, others on hover */}
+      <div className="flex gap-1">
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            onPin(index)
+          }}
+          className={`p-1.5 rounded-lg transition-colors ${
+            todo.pinned
+              ? 'text-blue-500 dark:text-blue-400'
+              : 'text-slate-400 hover:text-blue-500 opacity-0 group-hover:opacity-100'
+          }`}
+          title={todo.pinned ? '고정 해제' : '상단 고정'}
+        >
+          <svg className="w-4 h-4" fill={todo.pinned ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+          </svg>
+        </button>
         <button
           onClick={(e) => {
             e.stopPropagation()
             handleEdit()
           }}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors"
+          className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors opacity-0 group-hover:opacity-100"
           title="수정"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -163,7 +180,7 @@ export function TodoItem({ id, todo, index, isCarryover = false, onToggle, onDel
             e.stopPropagation()
             onDelete(index)
           }}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
+          className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors opacity-0 group-hover:opacity-100"
           title="삭제"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

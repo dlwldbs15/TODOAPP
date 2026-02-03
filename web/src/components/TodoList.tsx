@@ -21,18 +21,28 @@ interface TodoListProps {
   todos: Todo[]
   currentDate: string
   onToggle: (index: number) => void
+  onPin: (index: number) => void
   onDelete: (index: number) => void
   onUpdate: (index: number, text: string) => void
   onReorder: (oldIndex: number, newIndex: number) => void
 }
 
-export function TodoList({ todos, currentDate, onToggle, onDelete, onUpdate, onReorder }: TodoListProps) {
+// 고정된 항목을 상단에 정렬하는 헬퍼
+const sortByPinned = (items: Todo[]): Todo[] => {
+  return [...items].sort((a, b) => {
+    if (a.pinned && !b.pinned) return -1
+    if (!a.pinned && b.pinned) return 1
+    return 0
+  })
+}
+
+export function TodoList({ todos, currentDate, onToggle, onPin, onDelete, onUpdate, onReorder }: TodoListProps) {
   const [activeId, setActiveId] = useState<number | null>(null)
 
-  // 섹션 분리: 오늘 추가 / 이전에서 넘어온 할 일 / 완료
-  const todayIncomplete = todos.filter(t => !t.completed && t.originalDate === currentDate)
-  const carryoverIncomplete = todos.filter(t => !t.completed && t.originalDate && t.originalDate !== currentDate)
-  const completed = todos.filter(t => t.completed)
+  // 섹션 분리: 오늘 추가 / 이전에서 넘어온 할 일 / 완료 (각각 고정된 항목 상단 정렬)
+  const todayIncomplete = sortByPinned(todos.filter(t => !t.completed && t.originalDate === currentDate))
+  const carryoverIncomplete = sortByPinned(todos.filter(t => !t.completed && t.originalDate && t.originalDate !== currentDate))
+  const completed = sortByPinned(todos.filter(t => t.completed))
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -115,6 +125,7 @@ export function TodoList({ todos, currentDate, onToggle, onDelete, onUpdate, onR
                       index={idx}
                       isCarryover={true}
                       onToggle={onToggle}
+                      onPin={onPin}
                       onDelete={onDelete}
                       onUpdate={onUpdate}
                     />
@@ -143,6 +154,7 @@ export function TodoList({ todos, currentDate, onToggle, onDelete, onUpdate, onR
                       index={idx}
                       isCarryover={false}
                       onToggle={onToggle}
+                      onPin={onPin}
                       onDelete={onDelete}
                       onUpdate={onUpdate}
                     />
@@ -171,6 +183,7 @@ export function TodoList({ todos, currentDate, onToggle, onDelete, onUpdate, onR
                       index={idx}
                       isCarryover={false}
                       onToggle={onToggle}
+                      onPin={onPin}
                       onDelete={onDelete}
                       onUpdate={onUpdate}
                     />

@@ -21,17 +21,28 @@ const loadTodosForDate = async (targetDate: string): Promise<Todo[]> => {
   if (isElectron() && window.electronAPI) {
     return await window.electronAPI.loadTodos(targetDate)
   } else {
+    // localStorage를 항상 우선 사용 (안정성 보장)
+    const stored = localStorage.getItem(`todos-${targetDate}`)
+    if (stored) {
+      return JSON.parse(stored)
+    }
+
+    // localStorage에 없으면 API 시도
     try {
       const res = await fetch(`${API_BASE}/todos?date=${targetDate}`)
       if (res.ok) {
         const data = await res.json()
-        return data.todos || []
+        const todos = data.todos || []
+        // API에서 가져온 데이터를 localStorage에도 저장
+        if (todos.length > 0) {
+          localStorage.setItem(`todos-${targetDate}`, JSON.stringify(todos))
+        }
+        return todos
       }
     } catch {
-      // Fallback to localStorage
+      // API 실패
     }
-    const stored = localStorage.getItem(`todos-${targetDate}`)
-    return stored ? JSON.parse(stored) : []
+    return []
   }
 }
 
@@ -110,18 +121,23 @@ export function useTodos(date: string) {
 
   // 특정 날짜에 할 일 저장하는 헬퍼
   const saveTodosToDate = useCallback(async (targetDate: string, todosToSave: Todo[]) => {
+    // 항상 localStorage에 먼저 저장 (안정성 보장)
+    localStorage.setItem(`todos-${targetDate}`, JSON.stringify(todosToSave))
+
     if (isElectron() && window.electronAPI) {
       await window.electronAPI.saveTodos(targetDate, todosToSave)
     } else {
       try {
-        await fetch(`${API_BASE}/todos`, {
+        const res = await fetch(`${API_BASE}/todos`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ date: targetDate, todos: todosToSave }),
         })
+        if (!res.ok) {
+          console.warn('API save failed, using localStorage')
+        }
       } catch {
-        // Fallback to localStorage
-        localStorage.setItem(`todos-${targetDate}`, JSON.stringify(todosToSave))
+        // API 실패해도 이미 localStorage에 저장했으므로 괜찮음
       }
     }
   }, [])
@@ -139,35 +155,36 @@ export function useTodos(date: string) {
         todosByDate.get(todoDate)!.push(todo)
       }
 
-      // 각 날짜별로 저장
-      for (const [todoDate, todos] of todosByDate) {
-        await saveTodosToDate(todoDate, todos)
-      }
-
-      // 삭제된 할 일이 있는 날짜 처리: 원래 해당 날짜에 있던 할 일이 newTodos에 없으면
-      // 해당 날짜 파일에서도 제거해야 함
-      const currentTodosByDate = new Map<string, Todo[]>()
+      // 이전 상태의 날짜들도 추적 (삭제 처리용)
+      const prevTodosByDate = new Map<string, Todo[]>()
       for (const todo of todos) {
         const todoDate = todo.originalDate || date
-        if (!currentTodosByDate.has(todoDate)) {
-          currentTodosByDate.set(todoDate, [])
+        if (!prevTodosByDate.has(todoDate)) {
+          prevTodosByDate.set(todoDate, [])
         }
-        currentTodosByDate.get(todoDate)!.push(todo)
+        prevTodosByDate.get(todoDate)!.push(todo)
       }
 
-      // 기존에 있던 날짜 중 새 목록에 없는 날짜가 있으면 빈 배열로 저장할 필요 없음
-      // (해당 날짜의 다른 할 일은 유지해야 함)
-      for (const [todoDate] of currentTodosByDate) {
-        if (!todosByDate.has(todoDate)) {
-          // 이 날짜의 모든 할 일이 삭제됨 - 해당 날짜 파일 업데이트 필요
-          const originalTodos = await loadTodosForDate(todoDate)
-          const remainingTodos = originalTodos.filter(t =>
-            !todos.some(currentTodo =>
-              currentTodo.text === t.text && (currentTodo.originalDate || date) === todoDate
-            )
-          )
-          await saveTodosToDate(todoDate, remainingTodos)
-        }
+      // 모든 관련 날짜 수집
+      const allDates = new Set([...todosByDate.keys(), ...prevTodosByDate.keys()])
+
+      // 각 날짜별로 처리
+      for (const todoDate of allDates) {
+        const newTodosForDate = todosByDate.get(todoDate) || []
+
+        // 해당 날짜의 기존 저장된 할 일 로드
+        const storedTodos = await loadTodosForDate(todoDate)
+
+        // 기존 저장된 할 일 중 현재 뷰에 없는 것들 (다른 날짜에서 관리되는 것들) 유지
+        const todosToKeep = storedTodos.filter(stored => {
+          // 이전 뷰에도 없고 새 뷰에도 없는 것 = 유지
+          const wasInPrevView = todos.some(t => t.text === stored.text && (t.originalDate || date) === todoDate)
+          return !wasInPrevView
+        })
+
+        // 새 할 일 + 유지할 할 일
+        const finalTodos = [...newTodosForDate, ...todosToKeep]
+        await saveTodosToDate(todoDate, finalTodos)
       }
 
       setTodos(newTodos)
@@ -184,6 +201,13 @@ export function useTodos(date: string) {
   const toggleTodo = useCallback(async (index: number) => {
     const newTodos = todos.map((todo, i) =>
       i === index ? { ...todo, completed: !todo.completed } : todo
+    )
+    await saveTodos(newTodos)
+  }, [todos, saveTodos])
+
+  const togglePin = useCallback(async (index: number) => {
+    const newTodos = todos.map((todo, i) =>
+      i === index ? { ...todo, pinned: !todo.pinned } : todo
     )
     await saveTodos(newTodos)
   }, [todos, saveTodos])
@@ -215,7 +239,7 @@ export function useTodos(date: string) {
     loadTodos()
   }, [loadTodos])
 
-  return { todos, loading, addTodo, toggleTodo, deleteTodo, updateTodo, reorderTodos, refresh, currentDate: date }
+  return { todos, loading, addTodo, toggleTodo, togglePin, deleteTodo, updateTodo, reorderTodos, refresh, currentDate: date }
 }
 
 // Type declaration for Electron API
