@@ -1,87 +1,85 @@
-# TODO App with Obsidian Integration
+# TODO App
 
-날짜별 TODO 관리를 위한 Python CLI 애플리케이션입니다. Obsidian vault와 연동되어 마크다운 파일로 TODO를 저장합니다.
+날짜별 TODO 관리를 위한 웹 애플리케이션입니다. PWA 및 Electron 데스크톱 앱을 지원합니다.
 
 ## 주요 기능
 
-- 📅 날짜별 TODO 파일 관리 (YYYY-MM-DD.md)
-- ✅ TODO 추가, 보기, 완료 표시
-- 📁 Obsidian vault 자동 연동
-- ☁️ iCloud Drive 지원
-- 🗓️ 날짜 선택 (오늘, 어제, 내일, 특정 날짜)
-- 📋 전체 TODO 한눈에 보기
+- 날짜별 TODO 파일 관리
+- 할 일 추가, 완료, 수정, 삭제
+- 드래그 앤 드롭으로 순서 변경
+- 상단 고정 (핀) 기능
+- 북마크 기능 - 나중에 다시 볼 할 일 마킹
+- 북마크 모드 - 모든 날짜의 북마크를 한눈에
+- 이전 날짜 미완료 할 일 자동 누적
+- 다크 모드 지원
+- PWA 오프라인 지원
+- Electron 데스크톱 앱 지원
 
 ## 설치
 
 ```bash
-# Python 3.7+ 필요
-git clone https://github.com/dlwldbs15/TODOAPP.git
-cd TODOAPP
+cd web
+npm install
 ```
 
-외부 의존성 없음 - Python 표준 라이브러리만 사용합니다.
+## 실행
 
-## 사용 방법
-
-### Windows
-
-1. `run_todo.bat` 실행
-2. 또는 터미널에서:
-   ```bash
-   python todo_app.py
-   ```
-
-### Mac/Linux
+### 개발 서버
 
 ```bash
-python3 todo_app.py
+npm run dev
 ```
 
-## 첫 실행
+### 프로덕션 빌드
 
-1. 앱 실행 시 Obsidian vault 경로 설정
-2. 자동으로 `TODO` 폴더 생성
-3. 날짜별 마크다운 파일로 TODO 저장
-
-## 파일 구조
-
-```
-TodoApp/
-├── todo_app.py          # 메인 애플리케이션
-├── run_todo.bat         # Windows 실행 파일
-├── requirements.txt     # 의존성 (없음)
-├── config.json         # Vault 경로 설정 (자동 생성)
-└── README.md
-
-{Obsidian Vault}/
-└── TODO/
-    ├── 2026-01-28.md
-    ├── 2026-01-29.md
-    └── ...
+```bash
+npm run build
+npm run preview
 ```
 
-## 마크다운 포맷
+### Electron 데스크톱 앱
 
-```markdown
-# TODO - 2026-01-28
-
-_Last updated: 2026-01-28 14:30:00_
-
-## 미완료
-
-- [ ] Python 공부하기
-- [ ] 운동하기
-
-## 완료
-
-- [x] 장보기
+```bash
+npm run electron:dev   # 개발 모드
+npm run electron:build # 빌드
 ```
 
-## 향후 계획
+## 기술 스택
 
-- [ ] Windows/Mac GUI 버전
-- [ ] 웹 버전
-- [ ] 모바일 앱
+- React 19 + TypeScript
+- Vite
+- Tailwind CSS
+- @dnd-kit (드래그 앤 드롭)
+- PWA (vite-plugin-pwa)
+- Electron
+
+## 프로젝트 구조
+
+```
+web/
+├── src/
+│   ├── components/
+│   │   ├── AddTodo.tsx      # 할 일 추가 폼
+│   │   ├── DatePicker.tsx   # 날짜 선택
+│   │   ├── Settings.tsx     # 설정 모달
+│   │   ├── TodoItem.tsx     # 개별 할 일 아이템
+│   │   └── TodoList.tsx     # 할 일 목록
+│   ├── hooks/
+│   │   └── useTodos.ts      # 할 일 데이터 관리
+│   ├── types/
+│   │   └── todo.ts          # 타입 정의
+│   ├── App.tsx              # 메인 앱
+│   └── main.tsx             # 엔트리포인트
+├── electron/
+│   ├── main.ts              # Electron 메인 프로세스
+│   └── preload.ts           # Electron 프리로드
+└── package.json
+```
+
+## 데이터 저장
+
+- **PWA 모드**: localStorage + Express API 서버
+- **Electron 모드**: 로컬 파일 시스템 (Obsidian 연동 가능)
 
 ## 라이선스
 
