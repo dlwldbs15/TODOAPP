@@ -15,7 +15,7 @@ function App() {
 
   const today = new Date().toISOString().split('T')[0]
   const [selectedDate, setSelectedDate] = useState(today)
-  const { todos, loading, addTodo, toggleTodo, deleteTodo, updateTodo, reorderTodos, refresh } = useTodos(selectedDate)
+  const { todos, loading, addTodo, toggleTodo, deleteTodo, updateTodo, reorderTodos, refresh, currentDate } = useTodos(selectedDate)
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', darkMode)
@@ -107,7 +107,7 @@ function App() {
             로딩 중...
           </div>
         ) : (
-          <TodoList todos={todos} onToggle={handleToggle} onDelete={handleDelete} onUpdate={handleUpdate} onReorder={handleReorder} />
+          <TodoList todos={todos} currentDate={currentDate} onToggle={handleToggle} onDelete={handleDelete} onUpdate={handleUpdate} onReorder={handleReorder} />
         )}
 
         {/* Refresh Button */}

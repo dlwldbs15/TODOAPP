@@ -7,12 +7,19 @@ interface TodoItemProps {
   id: number
   todo: Todo
   index: number
+  isCarryover?: boolean
   onToggle: (index: number) => void
   onDelete: (index: number) => void
   onUpdate: (index: number, text: string) => void
 }
 
-export function TodoItem({ id, todo, index, onToggle, onDelete, onUpdate }: TodoItemProps) {
+// 날짜 포맷 헬퍼
+const formatDateLabel = (dateStr: string): string => {
+  const d = new Date(dateStr)
+  return `${d.getMonth() + 1}/${d.getDate()}`
+}
+
+export function TodoItem({ id, todo, index, isCarryover = false, onToggle, onDelete, onUpdate }: TodoItemProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editText, setEditText] = useState(todo.text)
 
@@ -95,7 +102,9 @@ export function TodoItem({ id, todo, index, onToggle, onDelete, onUpdate }: Todo
         ${isDragging ? 'opacity-50 shadow-lg z-50' : ''}
         ${todo.completed
           ? 'bg-slate-100 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'
-          : 'bg-white dark:bg-slate-800 border-transparent hover:border-indigo-500'
+          : isCarryover
+            ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700/50 hover:border-amber-400'
+            : 'bg-white dark:bg-slate-800 border-transparent hover:border-indigo-500'
         }`}
     >
       {/* Drag handle */}
@@ -117,16 +126,23 @@ export function TodoItem({ id, todo, index, onToggle, onDelete, onUpdate }: Todo
         className="w-5 h-5 rounded-full border-slate-300 dark:border-slate-600
           text-indigo-600 focus:ring-indigo-500 cursor-pointer"
       />
-      <span
-        onClick={() => onToggle(index)}
-        className={`ml-3 flex-1 cursor-pointer ${
-          todo.completed
-            ? 'line-through text-slate-400 dark:text-slate-500'
-            : 'text-slate-700 dark:text-slate-200'
-        }`}
-      >
-        {todo.text}
-      </span>
+      <div className="ml-3 flex-1">
+        <span
+          onClick={() => onToggle(index)}
+          className={`cursor-pointer ${
+            todo.completed
+              ? 'line-through text-slate-400 dark:text-slate-500'
+              : 'text-slate-700 dark:text-slate-200'
+          }`}
+        >
+          {todo.text}
+        </span>
+        {isCarryover && todo.originalDate && (
+          <span className="ml-2 text-xs text-amber-600 dark:text-amber-400">
+            {formatDateLabel(todo.originalDate)}에서 넘어옴
+          </span>
+        )}
+      </div>
 
       {/* Action buttons - visible on hover */}
       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

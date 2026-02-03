@@ -19,15 +19,19 @@ import { TodoItem, TodoItemOverlay } from './TodoItem'
 
 interface TodoListProps {
   todos: Todo[]
+  currentDate: string
   onToggle: (index: number) => void
   onDelete: (index: number) => void
   onUpdate: (index: number, text: string) => void
   onReorder: (oldIndex: number, newIndex: number) => void
 }
 
-export function TodoList({ todos, onToggle, onDelete, onUpdate, onReorder }: TodoListProps) {
+export function TodoList({ todos, currentDate, onToggle, onDelete, onUpdate, onReorder }: TodoListProps) {
   const [activeId, setActiveId] = useState<number | null>(null)
-  const incomplete = todos.filter(t => !t.completed)
+
+  // 섹션 분리: 오늘 추가 / 이전에서 넘어온 할 일 / 완료
+  const todayIncomplete = todos.filter(t => !t.completed && t.originalDate === currentDate)
+  const carryoverIncomplete = todos.filter(t => !t.completed && t.originalDate && t.originalDate !== currentDate)
   const completed = todos.filter(t => t.completed)
 
   const sensors = useSensors(
@@ -75,11 +79,14 @@ export function TodoList({ todos, onToggle, onDelete, onUpdate, onReorder }: Tod
   const getOriginalIndex = (todo: Todo) => todos.indexOf(todo)
 
   // Create sortable IDs based on original indices
-  const incompleteIds = incomplete.map(todo => getOriginalIndex(todo))
+  const carryoverIds = carryoverIncomplete.map(todo => getOriginalIndex(todo))
+  const todayIds = todayIncomplete.map(todo => getOriginalIndex(todo))
   const completedIds = completed.map(todo => getOriginalIndex(todo))
 
   // Get active todo for overlay
   const activeTodo = activeId !== null ? todos[activeId] : null
+
+  const totalIncomplete = carryoverIncomplete.length + todayIncomplete.length
 
   return (
     <DndContext
@@ -90,14 +97,15 @@ export function TodoList({ todos, onToggle, onDelete, onUpdate, onReorder }: Tod
       onDragCancel={handleDragCancel}
     >
       <div className="space-y-6">
-        {incomplete.length > 0 && (
+        {/* 이전에서 넘어온 할 일 */}
+        {carryoverIncomplete.length > 0 && (
           <section>
-            <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-              미완료 ({incomplete.length})
+            <h2 className="text-xs font-semibold text-amber-500 dark:text-amber-400 uppercase tracking-wider mb-3">
+              이전에서 넘어온 할 일 ({carryoverIncomplete.length})
             </h2>
-            <SortableContext items={incompleteIds} strategy={verticalListSortingStrategy}>
+            <SortableContext items={carryoverIds} strategy={verticalListSortingStrategy}>
               <div className="space-y-3">
-                {incomplete.map((todo) => {
+                {carryoverIncomplete.map((todo) => {
                   const idx = getOriginalIndex(todo)
                   return (
                     <TodoItem
@@ -105,6 +113,7 @@ export function TodoList({ todos, onToggle, onDelete, onUpdate, onReorder }: Tod
                       id={idx}
                       todo={todo}
                       index={idx}
+                      isCarryover={true}
                       onToggle={onToggle}
                       onDelete={onDelete}
                       onUpdate={onUpdate}
@@ -116,6 +125,35 @@ export function TodoList({ todos, onToggle, onDelete, onUpdate, onReorder }: Tod
           </section>
         )}
 
+        {/* 오늘 추가된 할 일 */}
+        {todayIncomplete.length > 0 && (
+          <section>
+            <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
+              오늘 추가 ({todayIncomplete.length})
+            </h2>
+            <SortableContext items={todayIds} strategy={verticalListSortingStrategy}>
+              <div className="space-y-3">
+                {todayIncomplete.map((todo) => {
+                  const idx = getOriginalIndex(todo)
+                  return (
+                    <TodoItem
+                      key={idx}
+                      id={idx}
+                      todo={todo}
+                      index={idx}
+                      isCarryover={false}
+                      onToggle={onToggle}
+                      onDelete={onDelete}
+                      onUpdate={onUpdate}
+                    />
+                  )
+                })}
+              </div>
+            </SortableContext>
+          </section>
+        )}
+
+        {/* 완료된 할 일 */}
         {completed.length > 0 && (
           <section>
             <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
@@ -131,6 +169,7 @@ export function TodoList({ todos, onToggle, onDelete, onUpdate, onReorder }: Tod
                       id={idx}
                       todo={todo}
                       index={idx}
+                      isCarryover={false}
                       onToggle={onToggle}
                       onDelete={onDelete}
                       onUpdate={onUpdate}
@@ -143,7 +182,7 @@ export function TodoList({ todos, onToggle, onDelete, onUpdate, onReorder }: Tod
         )}
 
         <div className="text-center text-xs text-slate-400 dark:text-slate-500 pt-4">
-          총 {todos.length}개 (미완료: {incomplete.length}, 완료: {completed.length})
+          총 {todos.length}개 (미완료: {totalIncomplete}, 완료: {completed.length})
         </div>
       </div>
 
