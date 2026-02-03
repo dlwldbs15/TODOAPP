@@ -1,18 +1,21 @@
 "use strict";
-/* eslint-disable @typescript-eslint/no-require-imports */
-const { app, BrowserWindow, ipcMain, Menu } = require('electron');
-const path = require('path');
-const fs = require('fs');
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const electron_1 = require("electron");
+const path_1 = __importDefault(require("path"));
+const fs_1 = __importDefault(require("fs"));
 const isDev = process.env.NODE_ENV === 'development';
 let mainWindow = null;
 function getConfigPath() {
-    return path.join(app.getPath('userData'), 'config.json');
+    return path_1.default.join(electron_1.app.getPath('userData'), 'config.json');
 }
 function loadConfig() {
     try {
         const configPath = getConfigPath();
-        if (fs.existsSync(configPath)) {
-            const data = fs.readFileSync(configPath, 'utf-8');
+        if (fs_1.default.existsSync(configPath)) {
+            const data = fs_1.default.readFileSync(configPath, 'utf-8');
             return JSON.parse(data);
         }
     }
@@ -26,14 +29,14 @@ function saveConfig(config) {
         const configPath = getConfigPath();
         const existing = loadConfig() || {};
         const merged = { ...existing, ...config };
-        fs.writeFileSync(configPath, JSON.stringify(merged, null, 2));
+        fs_1.default.writeFileSync(configPath, JSON.stringify(merged, null, 2));
     }
     catch (error) {
         console.error('Failed to save config:', error);
     }
 }
 function setAutoLaunch(enabled) {
-    app.setLoginItemSettings({
+    electron_1.app.setLoginItemSettings({
         openAtLogin: enabled,
         path: process.execPath,
     });
@@ -46,7 +49,7 @@ function getAutoLaunch() {
 }
 function initAutoLaunch() {
     const shouldAutoLaunch = getAutoLaunch();
-    app.setLoginItemSettings({
+    electron_1.app.setLoginItemSettings({
         openAtLogin: shouldAutoLaunch,
         path: process.execPath,
     });
@@ -54,14 +57,14 @@ function initAutoLaunch() {
 function getTodoFolder() {
     const config = loadConfig();
     if (config?.vault_path) {
-        return path.join(config.vault_path, 'TODO');
+        return path_1.default.join(config.vault_path, 'TODO');
     }
     return null;
 }
 function ensureTodoFolder() {
     const todoFolder = getTodoFolder();
-    if (todoFolder && !fs.existsSync(todoFolder)) {
-        fs.mkdirSync(todoFolder, { recursive: true });
+    if (todoFolder && !fs_1.default.existsSync(todoFolder)) {
+        fs_1.default.mkdirSync(todoFolder, { recursive: true });
     }
 }
 // 메타데이터 파싱: <!-- {"pinned":true,"bookmarked":true,"originalDate":"2026-02-03"} -->
@@ -83,11 +86,11 @@ function loadTodos(date) {
     const todoFolder = getTodoFolder();
     if (!todoFolder)
         return [];
-    const filePath = path.join(todoFolder, `${date}.md`);
-    if (!fs.existsSync(filePath))
+    const filePath = path_1.default.join(todoFolder, `${date}.md`);
+    if (!fs_1.default.existsSync(filePath))
         return [];
     try {
-        const content = fs.readFileSync(filePath, 'utf-8');
+        const content = fs_1.default.readFileSync(filePath, 'utf-8');
         const todos = [];
         for (const line of content.split('\n')) {
             const trimmed = line.trim();
@@ -125,7 +128,7 @@ function saveTodos(date, todos) {
     if (!todoFolder)
         return;
     ensureTodoFolder();
-    const filePath = path.join(todoFolder, `${date}.md`);
+    const filePath = path_1.default.join(todoFolder, `${date}.md`);
     const now = new Date();
     const timestamp = now.toISOString().replace('T', ' ').slice(0, 19);
     // 고정된 항목을 먼저, 그 다음 미완료, 마지막에 완료
@@ -155,7 +158,7 @@ function saveTodos(date, todos) {
         }
     }
     try {
-        fs.writeFileSync(filePath, content, 'utf-8');
+        fs_1.default.writeFileSync(filePath, content, 'utf-8');
     }
     catch (error) {
         console.error('Failed to save todos:', error);
@@ -164,15 +167,15 @@ function saveTodos(date, todos) {
 function createWindow() {
     // Hide menu bar in production
     if (!isDev) {
-        Menu.setApplicationMenu(null);
+        electron_1.Menu.setApplicationMenu(null);
     }
-    mainWindow = new BrowserWindow({
+    mainWindow = new electron_1.BrowserWindow({
         width: 450,
         height: 700,
         autoHideMenuBar: true,
-        icon: path.join(__dirname, '../build/icon.ico'),
+        icon: path_1.default.join(__dirname, '../build/icon.ico'),
         webPreferences: {
-            preload: path.join(__dirname, 'preload.cjs'),
+            preload: path_1.default.join(__dirname, 'preload.cjs'),
             contextIsolation: true,
             nodeIntegration: false,
         },
@@ -185,44 +188,44 @@ function createWindow() {
     }
     else {
         // In production, load from dist folder
-        const indexPath = path.join(__dirname, '../dist/index.html');
+        const indexPath = path_1.default.join(__dirname, '../dist/index.html');
         mainWindow.loadFile(indexPath);
     }
     mainWindow.on('closed', () => {
         mainWindow = null;
     });
 }
-app.whenReady().then(() => {
+electron_1.app.whenReady().then(() => {
     createWindow();
     initAutoLaunch();
-    app.on('activate', () => {
-        if (BrowserWindow.getAllWindows().length === 0) {
+    electron_1.app.on('activate', () => {
+        if (electron_1.BrowserWindow.getAllWindows().length === 0) {
             createWindow();
         }
     });
 });
-app.on('window-all-closed', () => {
+electron_1.app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
-        app.quit();
+        electron_1.app.quit();
     }
 });
 // IPC handlers
-ipcMain.handle('load-todos', (_event, date) => {
+electron_1.ipcMain.handle('load-todos', (_event, date) => {
     return loadTodos(date);
 });
-ipcMain.handle('save-todos', (_event, date, todos) => {
+electron_1.ipcMain.handle('save-todos', (_event, date, todos) => {
     saveTodos(date, todos);
 });
-ipcMain.handle('get-config', () => {
+electron_1.ipcMain.handle('get-config', () => {
     return loadConfig();
 });
-ipcMain.handle('set-config', (_event, vaultPath) => {
+electron_1.ipcMain.handle('set-config', (_event, vaultPath) => {
     saveConfig({ vault_path: vaultPath });
     ensureTodoFolder();
 });
-ipcMain.handle('get-auto-launch', () => {
+electron_1.ipcMain.handle('get-auto-launch', () => {
     return getAutoLaunch();
 });
-ipcMain.handle('set-auto-launch', (_event, enabled) => {
+electron_1.ipcMain.handle('set-auto-launch', (_event, enabled) => {
     setAutoLaunch(enabled);
 });

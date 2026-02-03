@@ -1,7 +1,8 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
-const { app, BrowserWindow, ipcMain, Menu } = require('electron')
-const path = require('path')
-const fs = require('fs')
+import { app, BrowserWindow, ipcMain, Menu } from 'electron'
+import path from 'path'
+import fs from 'fs'
+
+declare const __dirname: string
 
 const isDev = process.env.NODE_ENV === 'development'
 
