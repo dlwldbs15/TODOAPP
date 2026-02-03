@@ -14,4 +14,10 @@ electron_1.contextBridge.exposeInMainWorld('electronAPI', {
     setConfig: (vaultPath) => {
         return electron_1.ipcRenderer.invoke('set-config', vaultPath);
     },
+    getAutoLaunch: () => {
+        return electron_1.ipcRenderer.invoke('get-auto-launch');
+    },
+    setAutoLaunch: (enabled) => {
+        return electron_1.ipcRenderer.invoke('set-auto-launch', enabled);
+    },
 });

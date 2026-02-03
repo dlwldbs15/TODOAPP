@@ -1,3 +1,5 @@
+import { getLocalDateString } from '../hooks/useTodos'
+
 interface DatePickerProps {
   selectedDate: string
   onDateChange: (date: string) => void
@@ -10,7 +12,7 @@ export function DatePicker({ selectedDate, onDateChange }: DatePickerProps) {
   const tomorrow = new Date(today)
   tomorrow.setDate(tomorrow.getDate() + 1)
 
-  const formatDate = (date: Date) => date.toISOString().split('T')[0]
+  const formatDate = (date: Date) => getLocalDateString(date)
   const formatDisplay = (dateStr: string) => {
     const date = new Date(dateStr)
     const month = date.getMonth() + 1

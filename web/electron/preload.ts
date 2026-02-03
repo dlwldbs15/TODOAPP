@@ -3,6 +3,14 @@ import { contextBridge, ipcRenderer } from 'electron'
 interface Todo {
   text: string
   completed: boolean
+  originalDate?: string
+  pinned?: boolean
+  bookmarked?: boolean
+}
+
+interface AppConfig {
+  vault_path: string
+  autoLaunch?: boolean
 }
 
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -12,10 +20,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveTodos: (date: string, todos: Todo[]): Promise<void> => {
     return ipcRenderer.invoke('save-todos', date, todos)
   },
-  getConfig: (): Promise<{ vault_path: string } | null> => {
+  getConfig: (): Promise<AppConfig | null> => {
     return ipcRenderer.invoke('get-config')
   },
   setConfig: (vaultPath: string): Promise<void> => {
     return ipcRenderer.invoke('set-config', vaultPath)
+  },
+  getAutoLaunch: (): Promise<boolean> => {
+    return ipcRenderer.invoke('get-auto-launch')
+  },
+  setAutoLaunch: (enabled: boolean): Promise<void> => {
+    return ipcRenderer.invoke('set-auto-launch', enabled)
   },
 })

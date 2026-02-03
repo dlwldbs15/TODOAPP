@@ -21,14 +21,35 @@ function loadConfig() {
     }
     return null;
 }
-function saveConfig(vaultPath) {
+function saveConfig(config) {
     try {
         const configPath = getConfigPath();
-        fs.writeFileSync(configPath, JSON.stringify({ vault_path: vaultPath }, null, 2));
+        const existing = loadConfig() || {};
+        const merged = { ...existing, ...config };
+        fs.writeFileSync(configPath, JSON.stringify(merged, null, 2));
     }
     catch (error) {
         console.error('Failed to save config:', error);
     }
+}
+function setAutoLaunch(enabled) {
+    app.setLoginItemSettings({
+        openAtLogin: enabled,
+        path: process.execPath,
+    });
+    saveConfig({ autoLaunch: enabled });
+}
+function getAutoLaunch() {
+    const config = loadConfig();
+    // 기본값 true
+    return config?.autoLaunch !== false;
+}
+function initAutoLaunch() {
+    const shouldAutoLaunch = getAutoLaunch();
+    app.setLoginItemSettings({
+        openAtLogin: shouldAutoLaunch,
+        path: process.execPath,
+    });
 }
 function getTodoFolder() {
     const config = loadConfig();
@@ -43,6 +64,21 @@ function ensureTodoFolder() {
         fs.mkdirSync(todoFolder, { recursive: true });
     }
 }
+// 메타데이터 파싱: <!-- {"pinned":true,"bookmarked":true,"originalDate":"2026-02-03"} -->
+function parseMetadata(text) {
+    const metaMatch = text.match(/\s*<!--\s*(\{.*?\})\s*-->$/);
+    if (metaMatch) {
+        try {
+            const meta = JSON.parse(metaMatch[1]);
+            const cleanText = text.replace(metaMatch[0], '').trim();
+            return { cleanText, meta };
+        }
+        catch {
+            return { cleanText: text, meta: {} };
+        }
+    }
+    return { cleanText: text, meta: {} };
+}
 function loadTodos(date) {
     const todoFolder = getTodoFolder();
     if (!todoFolder)
@@ -56,10 +92,12 @@ function loadTodos(date) {
         for (const line of content.split('\n')) {
             const trimmed = line.trim();
             if (trimmed.startsWith('- [ ]')) {
-                todos.push({ text: trimmed.slice(6), completed: false });
+                const { cleanText, meta } = parseMetadata(trimmed.slice(6));
+                todos.push({ text: cleanText, completed: false, ...meta });
             }
             else if (trimmed.startsWith('- [x]') || trimmed.startsWith('- [X]')) {
-                todos.push({ text: trimmed.slice(6), completed: true });
+                const { cleanText, meta } = parseMetadata(trimmed.slice(6));
+                todos.push({ text: cleanText, completed: true, ...meta });
             }
         }
         return todos;
@@ -69,6 +107,19 @@ function loadTodos(date) {
         return [];
     }
 }
+// 메타데이터를 HTML 주석으로 직렬화
+function serializeMetadata(todo) {
+    const meta = {};
+    if (todo.pinned)
+        meta.pinned = true;
+    if (todo.bookmarked)
+        meta.bookmarked = true;
+    if (todo.originalDate)
+        meta.originalDate = todo.originalDate;
+    if (Object.keys(meta).length === 0)
+        return '';
+    return ` <!-- ${JSON.stringify(meta)} -->`;
+}
 function saveTodos(date, todos) {
     const todoFolder = getTodoFolder();
     if (!todoFolder)
@@ -77,21 +128,30 @@ function saveTodos(date, todos) {
     const filePath = path.join(todoFolder, `${date}.md`);
     const now = new Date();
     const timestamp = now.toISOString().replace('T', ' ').slice(0, 19);
-    const incomplete = todos.filter(t => !t.completed);
+    // 고정된 항목을 먼저, 그 다음 미완료, 마지막에 완료
+    const pinned = todos.filter(t => t.pinned && !t.completed);
+    const incomplete = todos.filter(t => !t.pinned && !t.completed);
     const completed = todos.filter(t => t.completed);
     let content = `# TODO - ${date}\n\n`;
     content += `_Last updated: ${timestamp}_\n\n`;
+    if (pinned.length > 0) {
+        content += `## 📌 고정\n\n`;
+        for (const todo of pinned) {
+            content += `- [ ] ${todo.text}${serializeMetadata(todo)}\n`;
+        }
+        content += '\n';
+    }
     if (incomplete.length > 0) {
         content += `## 미완료\n\n`;
         for (const todo of incomplete) {
-            content += `- [ ] ${todo.text}\n`;
+            content += `- [ ] ${todo.text}${serializeMetadata(todo)}\n`;
         }
         content += '\n';
     }
     if (completed.length > 0) {
         content += `## 완료\n\n`;
         for (const todo of completed) {
-            content += `- [x] ${todo.text}\n`;
+            content += `- [x] ${todo.text}${serializeMetadata(todo)}\n`;
         }
     }
     try {
@@ -134,6 +194,7 @@ function createWindow() {
 }
 app.whenReady().then(() => {
     createWindow();
+    initAutoLaunch();
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) {
             createWindow();
@@ -156,6 +217,12 @@ ipcMain.handle('get-config', () => {
     return loadConfig();
 });
 ipcMain.handle('set-config', (_event, vaultPath) => {
-    saveConfig(vaultPath);
+    saveConfig({ vault_path: vaultPath });
     ensureTodoFolder();
+});
+ipcMain.handle('get-auto-launch', () => {
+    return getAutoLaunch();
+});
+ipcMain.handle('set-auto-launch', (_event, enabled) => {
+    setAutoLaunch(enabled);
 });

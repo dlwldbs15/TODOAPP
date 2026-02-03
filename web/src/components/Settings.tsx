@@ -7,6 +7,7 @@ interface SettingsProps {
 
 export function Settings({ isOpen, onClose }: SettingsProps) {
   const [vaultPath, setVaultPath] = useState('')
+  const [autoLaunch, setAutoLaunch] = useState(true)
   const [saved, setSaved] = useState(false)
   const [isElectron, setIsElectron] = useState(false)
 
@@ -18,6 +19,9 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
         if (config?.vault_path) {
           setVaultPath(config.vault_path)
         }
+      })
+      window.electronAPI.getAutoLaunch().then((enabled) => {
+        setAutoLaunch(enabled)
       })
     }
   }, [isOpen])
@@ -31,6 +35,13 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
         onClose()
         window.location.reload()
       }, 1000)
+    }
+  }
+
+  const handleAutoLaunchChange = async (enabled: boolean) => {
+    setAutoLaunch(enabled)
+    if (window.electronAPI) {
+      await window.electronAPI.setAutoLaunch(enabled)
     }
   }
 
@@ -69,6 +80,29 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
                 <br />
                 vault 내에 TODO 폴더가 자동 생성됩니다.
               </p>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  시작 시 자동 실행
+                </label>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  컴퓨터 시작 시 앱이 자동으로 실행됩니다
+                </p>
+              </div>
+              <button
+                onClick={() => handleAutoLaunchChange(!autoLaunch)}
+                className={`relative w-12 h-6 rounded-full transition-colors ${
+                  autoLaunch ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'
+                }`}
+              >
+                <span
+                  className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                    autoLaunch ? 'translate-x-6' : ''
+                  }`}
+                />
+              </button>
             </div>
 
             {saved && (

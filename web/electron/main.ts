@@ -11,7 +11,12 @@ function getConfigPath(): string {
   return path.join(app.getPath('userData'), 'config.json')
 }
 
-function loadConfig(): { vault_path: string } | null {
+interface AppConfig {
+  vault_path: string
+  autoLaunch?: boolean
+}
+
+function loadConfig(): AppConfig | null {
   try {
     const configPath = getConfigPath()
     if (fs.existsSync(configPath)) {
@@ -24,13 +29,37 @@ function loadConfig(): { vault_path: string } | null {
   return null
 }
 
-function saveConfig(vaultPath: string): void {
+function saveConfig(config: Partial<AppConfig>): void {
   try {
     const configPath = getConfigPath()
-    fs.writeFileSync(configPath, JSON.stringify({ vault_path: vaultPath }, null, 2))
+    const existing = loadConfig() || {}
+    const merged = { ...existing, ...config }
+    fs.writeFileSync(configPath, JSON.stringify(merged, null, 2))
   } catch (error) {
     console.error('Failed to save config:', error)
   }
+}
+
+function setAutoLaunch(enabled: boolean): void {
+  app.setLoginItemSettings({
+    openAtLogin: enabled,
+    path: process.execPath,
+  })
+  saveConfig({ autoLaunch: enabled })
+}
+
+function getAutoLaunch(): boolean {
+  const config = loadConfig()
+  // 기본값 true
+  return config?.autoLaunch !== false
+}
+
+function initAutoLaunch(): void {
+  const shouldAutoLaunch = getAutoLaunch()
+  app.setLoginItemSettings({
+    openAtLogin: shouldAutoLaunch,
+    path: process.execPath,
+  })
 }
 
 function getTodoFolder(): string | null {
@@ -51,6 +80,24 @@ function ensureTodoFolder(): void {
 interface Todo {
   text: string
   completed: boolean
+  originalDate?: string
+  pinned?: boolean
+  bookmarked?: boolean
+}
+
+// 메타데이터 파싱: <!-- {"pinned":true,"bookmarked":true,"originalDate":"2026-02-03"} -->
+function parseMetadata(text: string): { cleanText: string; meta: Partial<Todo> } {
+  const metaMatch = text.match(/\s*<!--\s*(\{.*?\})\s*-->$/)
+  if (metaMatch) {
+    try {
+      const meta = JSON.parse(metaMatch[1])
+      const cleanText = text.replace(metaMatch[0], '').trim()
+      return { cleanText, meta }
+    } catch {
+      return { cleanText: text, meta: {} }
+    }
+  }
+  return { cleanText: text, meta: {} }
 }
 
 function loadTodos(date: string): Todo[] {
@@ -67,9 +114,11 @@ function loadTodos(date: string): Todo[] {
     for (const line of content.split('\n')) {
       const trimmed = line.trim()
       if (trimmed.startsWith('- [ ]')) {
-        todos.push({ text: trimmed.slice(6), completed: false })
+        const { cleanText, meta } = parseMetadata(trimmed.slice(6))
+        todos.push({ text: cleanText, completed: false, ...meta })
       } else if (trimmed.startsWith('- [x]') || trimmed.startsWith('- [X]')) {
-        todos.push({ text: trimmed.slice(6), completed: true })
+        const { cleanText, meta } = parseMetadata(trimmed.slice(6))
+        todos.push({ text: cleanText, completed: true, ...meta })
       }
     }
 
@@ -78,6 +127,17 @@ function loadTodos(date: string): Todo[] {
     console.error('Failed to load todos:', error)
     return []
   }
+}
+
+// 메타데이터를 HTML 주석으로 직렬화
+function serializeMetadata(todo: Todo): string {
+  const meta: Record<string, unknown> = {}
+  if (todo.pinned) meta.pinned = true
+  if (todo.bookmarked) meta.bookmarked = true
+  if (todo.originalDate) meta.originalDate = todo.originalDate
+
+  if (Object.keys(meta).length === 0) return ''
+  return ` <!-- ${JSON.stringify(meta)} -->`
 }
 
 function saveTodos(date: string, todos: Todo[]): void {
@@ -90,16 +150,26 @@ function saveTodos(date: string, todos: Todo[]): void {
   const now = new Date()
   const timestamp = now.toISOString().replace('T', ' ').slice(0, 19)
 
-  const incomplete = todos.filter(t => !t.completed)
+  // 고정된 항목을 먼저, 그 다음 미완료, 마지막에 완료
+  const pinned = todos.filter(t => t.pinned && !t.completed)
+  const incomplete = todos.filter(t => !t.pinned && !t.completed)
   const completed = todos.filter(t => t.completed)
 
   let content = `# TODO - ${date}\n\n`
   content += `_Last updated: ${timestamp}_\n\n`
 
+  if (pinned.length > 0) {
+    content += `## 📌 고정\n\n`
+    for (const todo of pinned) {
+      content += `- [ ] ${todo.text}${serializeMetadata(todo)}\n`
+    }
+    content += '\n'
+  }
+
   if (incomplete.length > 0) {
     content += `## 미완료\n\n`
     for (const todo of incomplete) {
-      content += `- [ ] ${todo.text}\n`
+      content += `- [ ] ${todo.text}${serializeMetadata(todo)}\n`
     }
     content += '\n'
   }
@@ -107,7 +177,7 @@ function saveTodos(date: string, todos: Todo[]): void {
   if (completed.length > 0) {
     content += `## 완료\n\n`
     for (const todo of completed) {
-      content += `- [x] ${todo.text}\n`
+      content += `- [x] ${todo.text}${serializeMetadata(todo)}\n`
     }
   }
 
@@ -154,6 +224,7 @@ function createWindow(): void {
 
 app.whenReady().then(() => {
   createWindow()
+  initAutoLaunch()
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -182,6 +253,14 @@ ipcMain.handle('get-config', () => {
 })
 
 ipcMain.handle('set-config', (_event: unknown, vaultPath: string) => {
-  saveConfig(vaultPath)
+  saveConfig({ vault_path: vaultPath })
   ensureTodoFolder()
+})
+
+ipcMain.handle('get-auto-launch', () => {
+  return getAutoLaunch()
+})
+
+ipcMain.handle('set-auto-launch', (_event: unknown, enabled: boolean) => {
+  setAutoLaunch(enabled)
 })

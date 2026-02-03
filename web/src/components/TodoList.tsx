@@ -16,7 +16,7 @@ import {
 } from '@dnd-kit/sortable'
 import type { Todo } from '../types/todo'
 import { TodoItem, TodoItemOverlay } from './TodoItem'
-import type { BookmarkedTodosByDate } from '../hooks/useTodos'
+import { getLocalDateString, type BookmarkedTodosByDate } from '../hooks/useTodos'
 
 interface TodoListProps {
   todos: Todo[]
@@ -43,12 +43,12 @@ const sortByPinned = (items: Todo[]): Todo[] => {
 
 // 날짜 포맷 헬퍼
 const formatDateLabel = (dateStr: string): string => {
-  const d = new Date(dateStr)
+  const d = new Date(dateStr + 'T00:00:00')
   const month = d.getMonth() + 1
   const day = d.getDate()
   const dayNames = ['일', '월', '화', '수', '목', '금', '토']
   const dayName = dayNames[d.getDay()]
-  const today = new Date().toISOString().split('T')[0]
+  const today = getLocalDateString()
   const isToday = dateStr === today
   return `${month}/${day} (${dayName})${isToday ? ' 오늘' : ''}`
 }

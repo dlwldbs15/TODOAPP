@@ -3,7 +3,7 @@ import { TodoList } from './components/TodoList'
 import { AddTodo } from './components/AddTodo'
 import { DatePicker } from './components/DatePicker'
 import { Settings } from './components/Settings'
-import { useTodos, collectBookmarkedTodos, type BookmarkedTodosByDate } from './hooks/useTodos'
+import { useTodos, collectBookmarkedTodos, getLocalDateString, type BookmarkedTodosByDate } from './hooks/useTodos'
 
 function App() {
   const [showSettings, setShowSettings] = useState(false)
@@ -16,7 +16,7 @@ function App() {
     return window.matchMedia('(prefers-color-scheme: dark)').matches
   })
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = getLocalDateString()
   const [selectedDate, setSelectedDate] = useState(today)
   const { todos, loading, addTodo, toggleTodo, togglePin, toggleBookmark, deleteTodo, updateTodo, reorderTodos, refresh, currentDate } = useTodos(selectedDate)
 
