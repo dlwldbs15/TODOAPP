@@ -90,6 +90,13 @@ export function useTodos(date: string) {
     await saveTodos(newTodos)
   }, [todos, saveTodos])
 
+  const reorderTodos = useCallback(async (oldIndex: number, newIndex: number) => {
+    const newTodos = [...todos]
+    const [removed] = newTodos.splice(oldIndex, 1)
+    newTodos.splice(newIndex, 0, removed)
+    await saveTodos(newTodos)
+  }, [todos, saveTodos])
+
   const refresh = useCallback(() => {
     loadTodos()
   }, [loadTodos])
@@ -98,7 +105,7 @@ export function useTodos(date: string) {
     loadTodos()
   }, [loadTodos])
 
-  return { todos, loading, addTodo, toggleTodo, deleteTodo, updateTodo, refresh }
+  return { todos, loading, addTodo, toggleTodo, deleteTodo, updateTodo, reorderTodos, refresh }
 }
 
 // Type declaration for Electron API

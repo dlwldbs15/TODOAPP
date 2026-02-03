@@ -1,7 +1,10 @@
 import { useState } from 'react'
+import { useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import type { Todo } from '../types/todo'
 
 interface TodoItemProps {
+  id: number
   todo: Todo
   index: number
   onToggle: (index: number) => void
@@ -9,9 +12,23 @@ interface TodoItemProps {
   onUpdate: (index: number, text: string) => void
 }
 
-export function TodoItem({ todo, index, onToggle, onDelete, onUpdate }: TodoItemProps) {
+export function TodoItem({ id, todo, index, onToggle, onDelete, onUpdate }: TodoItemProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editText, setEditText] = useState(todo.text)
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
 
   const handleEdit = () => {
     setEditText(todo.text)
@@ -72,12 +89,27 @@ export function TodoItem({ todo, index, onToggle, onDelete, onUpdate }: TodoItem
 
   return (
     <div
+      ref={setNodeRef}
+      style={style}
       className={`group flex items-center p-4 rounded-2xl border shadow-sm transition-all
+        ${isDragging ? 'opacity-50 shadow-lg z-50' : ''}
         ${todo.completed
           ? 'bg-slate-100 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'
           : 'bg-white dark:bg-slate-800 border-transparent hover:border-indigo-500'
         }`}
     >
+      {/* Drag handle */}
+      <button
+        {...attributes}
+        {...listeners}
+        className="p-1 mr-2 cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 touch-none"
+        title="드래그하여 정렬"
+      >
+        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z" />
+        </svg>
+      </button>
+
       <input
         type="checkbox"
         checked={todo.completed}
@@ -123,6 +155,44 @@ export function TodoItem({ todo, index, onToggle, onDelete, onUpdate }: TodoItem
           </svg>
         </button>
       </div>
+    </div>
+  )
+}
+
+// Overlay component for drag preview
+export function TodoItemOverlay({ todo }: { todo: Todo }) {
+  return (
+    <div
+      className={`flex items-center p-4 rounded-2xl border shadow-xl
+        ${todo.completed
+          ? 'bg-slate-100 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'
+          : 'bg-white dark:bg-slate-800 border-indigo-500'
+        }`}
+      style={{ opacity: 0.95 }}
+    >
+      {/* Drag handle */}
+      <div className="p-1 mr-2 text-slate-400">
+        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z" />
+        </svg>
+      </div>
+
+      <input
+        type="checkbox"
+        checked={todo.completed}
+        readOnly
+        className="w-5 h-5 rounded-full border-slate-300 dark:border-slate-600
+          text-indigo-600 pointer-events-none"
+      />
+      <span
+        className={`ml-3 flex-1 ${
+          todo.completed
+            ? 'line-through text-slate-400 dark:text-slate-500'
+            : 'text-slate-700 dark:text-slate-200'
+        }`}
+      >
+        {todo.text}
+      </span>
     </div>
   )
 }
