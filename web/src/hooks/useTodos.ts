@@ -46,6 +46,39 @@ const loadTodosForDate = async (targetDate: string): Promise<Todo[]> => {
   }
 }
 
+// 북마크된 할 일을 날짜별로 그룹핑하여 반환
+export type BookmarkedTodosByDate = { [date: string]: Todo[] }
+
+export const collectBookmarkedTodos = async (maxDays: number = 365): Promise<BookmarkedTodosByDate> => {
+  const result: BookmarkedTodosByDate = {}
+  const today = new Date().toISOString().split('T')[0]
+  let currentDate = today
+  let daysChecked = 0
+  let consecutiveEmptyDays = 0
+
+  while (daysChecked < maxDays && consecutiveEmptyDays < 30) {
+    const todos = await loadTodosForDate(currentDate)
+    const bookmarkedTodos = todos.filter(t => t.bookmarked)
+
+    if (bookmarkedTodos.length > 0) {
+      result[currentDate] = bookmarkedTodos.map(t => ({
+        ...t,
+        originalDate: t.originalDate || currentDate
+      }))
+      consecutiveEmptyDays = 0
+    } else if (todos.length === 0) {
+      consecutiveEmptyDays++
+    } else {
+      consecutiveEmptyDays = 0
+    }
+
+    currentDate = getPreviousDate(currentDate)
+    daysChecked++
+  }
+
+  return result
+}
+
 // 이전 날짜들에서 미완료 할 일 수집 (재귀적으로)
 const collectCarryoverTodos = async (beforeDate: string, maxDays: number = 365): Promise<Todo[]> => {
   const carryoverTodos: Todo[] = []
@@ -212,6 +245,13 @@ export function useTodos(date: string) {
     await saveTodos(newTodos)
   }, [todos, saveTodos])
 
+  const toggleBookmark = useCallback(async (index: number) => {
+    const newTodos = todos.map((todo, i) =>
+      i === index ? { ...todo, bookmarked: !todo.bookmarked } : todo
+    )
+    await saveTodos(newTodos)
+  }, [todos, saveTodos])
+
   const deleteTodo = useCallback(async (index: number) => {
     const newTodos = todos.filter((_, i) => i !== index)
     await saveTodos(newTodos)
@@ -239,7 +279,7 @@ export function useTodos(date: string) {
     loadTodos()
   }, [loadTodos])
 
-  return { todos, loading, addTodo, toggleTodo, togglePin, deleteTodo, updateTodo, reorderTodos, refresh, currentDate: date }
+  return { todos, loading, addTodo, toggleTodo, togglePin, toggleBookmark, deleteTodo, updateTodo, reorderTodos, refresh, currentDate: date }
 }
 
 // Type declaration for Electron API

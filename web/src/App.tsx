@@ -3,10 +3,13 @@ import { TodoList } from './components/TodoList'
 import { AddTodo } from './components/AddTodo'
 import { DatePicker } from './components/DatePicker'
 import { Settings } from './components/Settings'
-import { useTodos } from './hooks/useTodos'
+import { useTodos, collectBookmarkedTodos, type BookmarkedTodosByDate } from './hooks/useTodos'
 
 function App() {
   const [showSettings, setShowSettings] = useState(false)
+  const [bookmarkMode, setBookmarkMode] = useState(false)
+  const [bookmarkedTodos, setBookmarkedTodos] = useState<BookmarkedTodosByDate>({})
+  const [bookmarkLoading, setBookmarkLoading] = useState(false)
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('darkMode')
     if (saved !== null) return JSON.parse(saved)
@@ -15,7 +18,7 @@ function App() {
 
   const today = new Date().toISOString().split('T')[0]
   const [selectedDate, setSelectedDate] = useState(today)
-  const { todos, loading, addTodo, toggleTodo, togglePin, deleteTodo, updateTodo, reorderTodos, refresh, currentDate } = useTodos(selectedDate)
+  const { todos, loading, addTodo, toggleTodo, togglePin, toggleBookmark, deleteTodo, updateTodo, reorderTodos, refresh, currentDate } = useTodos(selectedDate)
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', darkMode)
@@ -46,6 +49,33 @@ function App() {
     await togglePin(index)
   }
 
+  const handleBookmark = async (index: number) => {
+    await toggleBookmark(index)
+  }
+
+  const toggleBookmarkMode = async () => {
+    if (!bookmarkMode) {
+      setBookmarkLoading(true)
+      try {
+        const bookmarked = await collectBookmarkedTodos()
+        setBookmarkedTodos(bookmarked)
+      } finally {
+        setBookmarkLoading(false)
+      }
+    }
+    setBookmarkMode(!bookmarkMode)
+  }
+
+  const refreshBookmarks = async () => {
+    setBookmarkLoading(true)
+    try {
+      const bookmarked = await collectBookmarkedTodos()
+      setBookmarkedTodos(bookmarked)
+    } finally {
+      setBookmarkLoading(false)
+    }
+  }
+
   // 날짜 포맷 함수
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr)
@@ -67,6 +97,26 @@ function App() {
             <p className="text-slate-500 text-sm">{formatDate(selectedDate)}</p>
           </div>
           <div className="flex gap-2">
+            {/* Bookmark Mode Toggle */}
+            <button
+              onClick={toggleBookmarkMode}
+              className={`p-2 rounded-xl shadow-sm hover:shadow-md transition-all ${
+                bookmarkMode
+                  ? 'bg-amber-100 dark:bg-amber-900/50'
+                  : 'bg-white dark:bg-slate-800'
+              }`}
+              aria-label="북마크 모드"
+              title={bookmarkMode ? '일반 모드로 전환' : '북마크 모드'}
+            >
+              <svg
+                className={`w-5 h-5 ${bookmarkMode ? 'text-amber-500' : 'text-slate-600 dark:text-slate-400'}`}
+                fill={bookmarkMode ? 'currentColor' : 'none'}
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+              </svg>
+            </button>
             <button
               onClick={() => setShowSettings(true)}
               className="p-2 rounded-xl bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-all"
@@ -99,24 +149,55 @@ function App() {
           </div>
         </header>
 
-        {/* Date Picker */}
-        <DatePicker selectedDate={selectedDate} onDateChange={setSelectedDate} />
+        {/* Date Picker - 북마크 모드에서는 숨김 */}
+        {!bookmarkMode && (
+          <DatePicker selectedDate={selectedDate} onDateChange={setSelectedDate} />
+        )}
 
-        {/* Add Todo */}
-        <AddTodo onAdd={handleAddTodo} />
+        {/* Add Todo - 북마크 모드에서는 숨김 */}
+        {!bookmarkMode && <AddTodo onAdd={handleAddTodo} />}
 
         {/* Todo List */}
-        {loading ? (
+        {bookmarkMode ? (
+          bookmarkLoading ? (
+            <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+              북마크 로딩 중...
+            </div>
+          ) : (
+            <TodoList
+              todos={todos}
+              currentDate={currentDate}
+              onToggle={handleToggle}
+              onPin={handlePin}
+              onBookmark={handleBookmark}
+              onDelete={handleDelete}
+              onUpdate={handleUpdate}
+              onReorder={handleReorder}
+              bookmarkMode={true}
+              bookmarkedTodos={bookmarkedTodos}
+              onRefreshBookmarks={refreshBookmarks}
+            />
+          )
+        ) : loading ? (
           <div className="text-center py-8 text-slate-500 dark:text-slate-400">
             로딩 중...
           </div>
         ) : (
-          <TodoList todos={todos} currentDate={currentDate} onToggle={handleToggle} onPin={handlePin} onDelete={handleDelete} onUpdate={handleUpdate} onReorder={handleReorder} />
+          <TodoList
+            todos={todos}
+            currentDate={currentDate}
+            onToggle={handleToggle}
+            onPin={handlePin}
+            onBookmark={handleBookmark}
+            onDelete={handleDelete}
+            onUpdate={handleUpdate}
+            onReorder={handleReorder}
+          />
         )}
 
         {/* Refresh Button */}
         <button
-          onClick={refresh}
+          onClick={bookmarkMode ? refreshBookmarks : refresh}
           className="mt-4 w-full py-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
         >
           새로고침

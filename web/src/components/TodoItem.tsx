@@ -10,6 +10,7 @@ interface TodoItemProps {
   isCarryover?: boolean
   onToggle: (index: number) => void
   onPin: (index: number) => void
+  onBookmark: (index: number) => void
   onDelete: (index: number) => void
   onUpdate: (index: number, text: string) => void
 }
@@ -20,7 +21,7 @@ const formatDateLabel = (dateStr: string): string => {
   return `${d.getMonth() + 1}/${d.getDate()}`
 }
 
-export function TodoItem({ id, todo, index, isCarryover = false, onToggle, onPin, onDelete, onUpdate }: TodoItemProps) {
+export function TodoItem({ id, todo, index, isCarryover = false, onToggle, onPin, onBookmark, onDelete, onUpdate }: TodoItemProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editText, setEditText] = useState(todo.text)
 
@@ -145,8 +146,9 @@ export function TodoItem({ id, todo, index, isCarryover = false, onToggle, onPin
         )}
       </div>
 
-      {/* Action buttons - pin always visible if pinned, others on hover */}
+      {/* Action buttons - pin/bookmark always visible if active, others on hover */}
       <div className="flex gap-1">
+        {/* Pin button - 핀 모양 */}
         <button
           onClick={(e) => {
             e.stopPropagation()
@@ -160,6 +162,23 @@ export function TodoItem({ id, todo, index, isCarryover = false, onToggle, onPin
           title={todo.pinned ? '고정 해제' : '상단 고정'}
         >
           <svg className="w-4 h-4" fill={todo.pinned ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 4v4l2 2v4h-5v6l-1 2-1-2v-6H6v-4l2-2V4a1 1 0 011-1h6a1 1 0 011 1z" />
+          </svg>
+        </button>
+        {/* Bookmark button - 책갈피 모양 */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            onBookmark(index)
+          }}
+          className={`p-1.5 rounded-lg transition-colors ${
+            todo.bookmarked
+              ? 'text-amber-500 dark:text-amber-400'
+              : 'text-slate-400 hover:text-amber-500 opacity-0 group-hover:opacity-100'
+          }`}
+          title={todo.bookmarked ? '북마크 해제' : '북마크'}
+        >
+          <svg className="w-4 h-4" fill={todo.bookmarked ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
           </svg>
         </button>
