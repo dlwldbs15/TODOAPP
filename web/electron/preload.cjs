@@ -20,4 +20,7 @@ electron_1.contextBridge.exposeInMainWorld('electronAPI', {
     setAutoLaunch: (enabled) => {
         return electron_1.ipcRenderer.invoke('set-auto-launch', enabled);
     },
+    showNotification: (title, body) => {
+        electron_1.ipcRenderer.invoke('show-notification', title, body);
+    },
 });

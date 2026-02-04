@@ -256,10 +256,10 @@ export function useTodos(date: string) {
   );
 
   const addTodo = useCallback(
-    async (text: string) => {
+    async (text: string, reminder?: string) => {
       const newTodos = [
         ...todos,
-        { text, completed: false, originalDate: date },
+        { text, completed: false, originalDate: date, reminder },
       ];
       await saveTodos(newTodos);
     },
@@ -305,9 +305,19 @@ export function useTodos(date: string) {
   );
 
   const updateTodo = useCallback(
-    async (index: number, text: string) => {
+    async (index: number, text: string, reminder?: string) => {
       const newTodos = todos.map((todo, i) =>
-        i === index ? { ...todo, text } : todo,
+        i === index ? { ...todo, text, reminder } : todo,
+      );
+      await saveTodos(newTodos);
+    },
+    [todos, saveTodos],
+  );
+
+  const clearReminder = useCallback(
+    async (index: number) => {
+      const newTodos = todos.map((todo, i) =>
+        i === index ? { ...todo, reminder: undefined } : todo,
       );
       await saveTodos(newTodos);
     },
@@ -343,6 +353,7 @@ export function useTodos(date: string) {
     updateTodo,
     reorderTodos,
     refresh,
+    clearReminder,
     currentDate: date,
   };
 }
@@ -360,6 +371,7 @@ declare global {
       setConfig: (vaultPath: string) => Promise<void>;
       getAutoLaunch: () => Promise<boolean>;
       setAutoLaunch: (enabled: boolean) => Promise<void>;
+      showNotification: (title: string, body: string) => void;
     };
   }
 }

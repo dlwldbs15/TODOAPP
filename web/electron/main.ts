@@ -1,10 +1,14 @@
-import { app, BrowserWindow, ipcMain, Menu } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu, Notification } from 'electron'
 import path from 'path'
 import fs from 'fs'
 
 declare const __dirname: string
 
 const isDev = process.env.NODE_ENV === 'development'
+
+// Windows 알림에서 앱 이름 표시를 위한 설정
+app.setAppUserModelId('com.todoapp.app')
+app.setName('TODO App')
 
 let mainWindow: typeof BrowserWindow.prototype | null = null
 
@@ -264,4 +268,15 @@ ipcMain.handle('get-auto-launch', () => {
 
 ipcMain.handle('set-auto-launch', (_event: unknown, enabled: boolean) => {
   setAutoLaunch(enabled)
+})
+
+ipcMain.handle('show-notification', (_event: unknown, title: string, body: string) => {
+  const notification = new Notification({ title, body })
+  notification.on('click', () => {
+    if (mainWindow) {
+      mainWindow.show()
+      mainWindow.focus()
+    }
+  })
+  notification.show()
 })

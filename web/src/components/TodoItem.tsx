@@ -12,7 +12,7 @@ interface TodoItemProps {
   onPin: (index: number) => void
   onBookmark: (index: number) => void
   onDelete: (index: number) => void
-  onUpdate: (index: number, text: string) => void
+  onUpdate: (index: number, text: string, reminder?: string) => void
 }
 
 // 날짜 포맷 헬퍼
@@ -21,9 +21,20 @@ const formatDateLabel = (dateStr: string): string => {
   return `${d.getMonth() + 1}/${d.getDate()}`
 }
 
+// 리마인더 시간 포맷 헬퍼
+const formatReminderLabel = (reminderStr: string): string => {
+  const d = new Date(reminderStr)
+  const month = d.getMonth() + 1
+  const day = d.getDate()
+  const hour = d.getHours()
+  const minute = String(d.getMinutes()).padStart(2, '0')
+  return `${month}/${day} ${hour}:${minute}`
+}
+
 export function TodoItem({ id, todo, index, isCarryover = false, onToggle, onPin, onBookmark, onDelete, onUpdate }: TodoItemProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editText, setEditText] = useState(todo.text)
+  const [editReminder, setEditReminder] = useState(todo.reminder || '')
 
   const {
     attributes,
@@ -41,18 +52,20 @@ export function TodoItem({ id, todo, index, isCarryover = false, onToggle, onPin
 
   const handleEdit = () => {
     setEditText(todo.text)
+    setEditReminder(todo.reminder || '')
     setIsEditing(true)
   }
 
   const handleSave = () => {
     if (editText.trim()) {
-      onUpdate(index, editText.trim())
+      onUpdate(index, editText.trim(), editReminder || undefined)
       setIsEditing(false)
     }
   }
 
   const handleCancel = () => {
     setEditText(todo.text)
+    setEditReminder(todo.reminder || '')
     setIsEditing(false)
   }
 
@@ -66,32 +79,58 @@ export function TodoItem({ id, todo, index, isCarryover = false, onToggle, onPin
 
   if (isEditing) {
     return (
-      <div className="flex items-center gap-2 p-4 rounded-2xl bg-white dark:bg-slate-800 border-2 border-indigo-500 shadow-sm">
-        <input
-          type="text"
-          value={editText}
-          onChange={(e) => setEditText(e.target.value)}
-          onKeyDown={handleKeyDown}
-          autoFocus
-          className="flex-1 px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-700
-            text-slate-900 dark:text-slate-100 outline-none"
-        />
-        <button
-          onClick={handleSave}
-          className="p-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+      <div className="flex flex-col gap-2 p-4 rounded-2xl bg-white dark:bg-slate-800 border-2 border-indigo-500 shadow-sm">
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={editText}
+            onChange={(e) => setEditText(e.target.value)}
+            onKeyDown={handleKeyDown}
+            autoFocus
+            className="flex-1 px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-700
+              text-slate-900 dark:text-slate-100 outline-none"
+          />
+          <button
+            onClick={handleSave}
+            className="p-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          </button>
+          <button
+            onClick={handleCancel}
+            className="p-1.5 rounded-lg bg-slate-300 dark:bg-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-400 dark:hover:bg-slate-500 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        {/* 리마인더 설정 */}
+        <div className="flex items-center gap-2 text-sm">
+          <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
           </svg>
-        </button>
-        <button
-          onClick={handleCancel}
-          className="p-1.5 rounded-lg bg-slate-300 dark:bg-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-400 dark:hover:bg-slate-500 transition-colors"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+          <input
+            type="datetime-local"
+            value={editReminder}
+            onChange={(e) => setEditReminder(e.target.value)}
+            className="flex-1 px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-700
+              text-slate-900 dark:text-slate-100 outline-none text-sm"
+          />
+          {editReminder && (
+            <button
+              onClick={() => setEditReminder('')}
+              className="p-1 rounded text-slate-400 hover:text-red-500 transition-colors"
+              title="리마인더 삭제"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
     )
   }
@@ -142,6 +181,14 @@ export function TodoItem({ id, todo, index, isCarryover = false, onToggle, onPin
         {isCarryover && todo.originalDate && (
           <span className="ml-2 text-xs text-amber-600 dark:text-amber-400">
             {formatDateLabel(todo.originalDate)}에서 넘어옴
+          </span>
+        )}
+        {todo.reminder && (
+          <span className="ml-2 text-xs text-indigo-500 dark:text-indigo-400 flex items-center gap-1">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            {formatReminderLabel(todo.reminder)}
           </span>
         )}
       </div>

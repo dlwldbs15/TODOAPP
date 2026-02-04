@@ -4,6 +4,7 @@ import { AddTodo } from './components/AddTodo'
 import { DatePicker } from './components/DatePicker'
 import { Settings } from './components/Settings'
 import { useTodos, collectBookmarkedTodos, getLocalDateString, type BookmarkedTodosByDate } from './hooks/useTodos'
+import { useReminder } from './hooks/useReminder'
 
 function App() {
   const [showSettings, setShowSettings] = useState(false)
@@ -18,15 +19,23 @@ function App() {
 
   const today = getLocalDateString()
   const [selectedDate, setSelectedDate] = useState(today)
-  const { todos, loading, addTodo, toggleTodo, togglePin, toggleBookmark, deleteTodo, updateTodo, reorderTodos, refresh, currentDate } = useTodos(selectedDate)
+  const { todos, loading, addTodo, toggleTodo, togglePin, toggleBookmark, deleteTodo, updateTodo, reorderTodos, refresh, clearReminder, currentDate } = useTodos(selectedDate)
+
+  // 리마인더 기능
+  useReminder({
+    todos,
+    onReminderTriggered: (index) => {
+      clearReminder(index)
+    },
+  })
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', darkMode)
     localStorage.setItem('darkMode', JSON.stringify(darkMode))
   }, [darkMode])
 
-  const handleAddTodo = async (text: string) => {
-    await addTodo(text)
+  const handleAddTodo = async (text: string, reminder?: string) => {
+    await addTodo(text, reminder)
   }
 
   const handleToggle = async (index: number) => {
@@ -37,8 +46,8 @@ function App() {
     await deleteTodo(index)
   }
 
-  const handleUpdate = async (index: number, text: string) => {
-    await updateTodo(index, text)
+  const handleUpdate = async (index: number, text: string, reminder?: string) => {
+    await updateTodo(index, text, reminder)
   }
 
   const handleReorder = async (oldIndex: number, newIndex: number) => {

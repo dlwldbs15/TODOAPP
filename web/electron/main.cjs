@@ -7,6 +7,9 @@ const electron_1 = require("electron");
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
 const isDev = process.env.NODE_ENV === 'development';
+// Windows 알림에서 앱 이름 표시를 위한 설정
+electron_1.app.setAppUserModelId('com.todoapp.app');
+electron_1.app.setName('TODO App');
 let mainWindow = null;
 function getConfigPath() {
     return path_1.default.join(electron_1.app.getPath('userData'), 'config.json');
@@ -228,4 +231,14 @@ electron_1.ipcMain.handle('get-auto-launch', () => {
 });
 electron_1.ipcMain.handle('set-auto-launch', (_event, enabled) => {
     setAutoLaunch(enabled);
+});
+electron_1.ipcMain.handle('show-notification', (_event, title, body) => {
+    const notification = new electron_1.Notification({ title, body });
+    notification.on('click', () => {
+        if (mainWindow) {
+            mainWindow.show();
+            mainWindow.focus();
+        }
+    });
+    notification.show();
 });

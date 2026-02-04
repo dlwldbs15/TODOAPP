@@ -32,4 +32,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setAutoLaunch: (enabled: boolean): Promise<void> => {
     return ipcRenderer.invoke('set-auto-launch', enabled)
   },
+  showNotification: (title: string, body: string): void => {
+    ipcRenderer.invoke('show-notification', title, body)
+  },
 })

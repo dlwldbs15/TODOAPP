@@ -25,7 +25,7 @@ interface TodoListProps {
   onPin: (index: number) => void
   onBookmark: (index: number) => void
   onDelete: (index: number) => void
-  onUpdate: (index: number, text: string) => void
+  onUpdate: (index: number, text: string, reminder?: string) => void
   onReorder: (oldIndex: number, newIndex: number) => void
   bookmarkMode?: boolean
   bookmarkedTodos?: BookmarkedTodosByDate
