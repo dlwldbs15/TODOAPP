@@ -3,11 +3,14 @@ import { TodoList } from './components/TodoList'
 import { AddTodo } from './components/AddTodo'
 import { DatePicker } from './components/DatePicker'
 import { Settings } from './components/Settings'
+import { MemoButton } from './components/MemoButton'
+import { MemoPanel } from './components/MemoPanel'
 import { useTodos, collectBookmarkedTodos, getLocalDateString, type BookmarkedTodosByDate } from './hooks/useTodos'
 import { useReminder } from './hooks/useReminder'
 
 function App() {
   const [showSettings, setShowSettings] = useState(false)
+  const [showMemo, setShowMemo] = useState(false)
   const [bookmarkMode, setBookmarkMode] = useState(false)
   const [bookmarkedTodos, setBookmarkedTodos] = useState<BookmarkedTodosByDate>({})
   const [bookmarkLoading, setBookmarkLoading] = useState(false)
@@ -215,6 +218,10 @@ function App() {
 
       {/* Settings Modal */}
       <Settings isOpen={showSettings} onClose={() => setShowSettings(false)} />
+
+      {/* Memo */}
+      <MemoButton onClick={() => setShowMemo(true)} />
+      <MemoPanel isOpen={showMemo} onClose={() => setShowMemo(false)} />
     </div>
   )
 }

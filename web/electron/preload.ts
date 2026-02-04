@@ -35,4 +35,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   showNotification: (title: string, body: string): void => {
     ipcRenderer.invoke('show-notification', title, body)
   },
+  loadMemo: (name: string): Promise<string> => {
+    return ipcRenderer.invoke('load-memo', name)
+  },
+  saveMemo: (name: string, content: string): Promise<void> => {
+    return ipcRenderer.invoke('save-memo', name, content)
+  },
 })

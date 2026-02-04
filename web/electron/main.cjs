@@ -64,6 +64,47 @@ function getTodoFolder() {
     }
     return null;
 }
+function getMemoFolder() {
+    const todoFolder = getTodoFolder();
+    if (todoFolder) {
+        return path_1.default.join(todoFolder, 'memo');
+    }
+    return null;
+}
+function ensureMemoFolder() {
+    const memoFolder = getMemoFolder();
+    if (memoFolder && !fs_1.default.existsSync(memoFolder)) {
+        fs_1.default.mkdirSync(memoFolder, { recursive: true });
+    }
+}
+function loadMemo(name) {
+    const memoFolder = getMemoFolder();
+    if (!memoFolder)
+        return '';
+    const filePath = path_1.default.join(memoFolder, `${name}.md`);
+    if (!fs_1.default.existsSync(filePath))
+        return '';
+    try {
+        return fs_1.default.readFileSync(filePath, 'utf-8');
+    }
+    catch (error) {
+        console.error('Failed to load memo:', error);
+        return '';
+    }
+}
+function saveMemo(name, content) {
+    const memoFolder = getMemoFolder();
+    if (!memoFolder)
+        return;
+    ensureMemoFolder();
+    const filePath = path_1.default.join(memoFolder, `${name}.md`);
+    try {
+        fs_1.default.writeFileSync(filePath, content, 'utf-8');
+    }
+    catch (error) {
+        console.error('Failed to save memo:', error);
+    }
+}
 function ensureTodoFolder() {
     const todoFolder = getTodoFolder();
     if (todoFolder && !fs_1.default.existsSync(todoFolder)) {
@@ -241,4 +282,10 @@ electron_1.ipcMain.handle('show-notification', (_event, title, body) => {
         }
     });
     notification.show();
+});
+electron_1.ipcMain.handle('load-memo', (_event, name) => {
+    return loadMemo(name);
+});
+electron_1.ipcMain.handle('save-memo', (_event, name, content) => {
+    saveMemo(name, content);
 });

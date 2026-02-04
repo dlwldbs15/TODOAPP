@@ -372,6 +372,8 @@ declare global {
       getAutoLaunch: () => Promise<boolean>;
       setAutoLaunch: (enabled: boolean) => Promise<void>;
       showNotification: (title: string, body: string) => void;
+      loadMemo: (name: string) => Promise<string>;
+      saveMemo: (name: string, content: string) => Promise<void>;
     };
   }
 }

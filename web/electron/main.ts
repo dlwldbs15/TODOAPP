@@ -75,6 +75,50 @@ function getTodoFolder(): string | null {
   return null
 }
 
+function getMemoFolder(): string | null {
+  const todoFolder = getTodoFolder()
+  if (todoFolder) {
+    return path.join(todoFolder, 'memo')
+  }
+  return null
+}
+
+function ensureMemoFolder(): void {
+  const memoFolder = getMemoFolder()
+  if (memoFolder && !fs.existsSync(memoFolder)) {
+    fs.mkdirSync(memoFolder, { recursive: true })
+  }
+}
+
+function loadMemo(name: string): string {
+  const memoFolder = getMemoFolder()
+  if (!memoFolder) return ''
+
+  const filePath = path.join(memoFolder, `${name}.md`)
+  if (!fs.existsSync(filePath)) return ''
+
+  try {
+    return fs.readFileSync(filePath, 'utf-8')
+  } catch (error) {
+    console.error('Failed to load memo:', error)
+    return ''
+  }
+}
+
+function saveMemo(name: string, content: string): void {
+  const memoFolder = getMemoFolder()
+  if (!memoFolder) return
+
+  ensureMemoFolder()
+  const filePath = path.join(memoFolder, `${name}.md`)
+
+  try {
+    fs.writeFileSync(filePath, content, 'utf-8')
+  } catch (error) {
+    console.error('Failed to save memo:', error)
+  }
+}
+
 function ensureTodoFolder(): void {
   const todoFolder = getTodoFolder()
   if (todoFolder && !fs.existsSync(todoFolder)) {
@@ -279,4 +323,12 @@ ipcMain.handle('show-notification', (_event: unknown, title: string, body: strin
     }
   })
   notification.show()
+})
+
+ipcMain.handle('load-memo', (_event: unknown, name: string) => {
+  return loadMemo(name)
+})
+
+ipcMain.handle('save-memo', (_event: unknown, name: string, content: string) => {
+  saveMemo(name, content)
 })

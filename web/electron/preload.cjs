@@ -23,4 +23,10 @@ electron_1.contextBridge.exposeInMainWorld('electronAPI', {
     showNotification: (title, body) => {
         electron_1.ipcRenderer.invoke('show-notification', title, body);
     },
+    loadMemo: (name) => {
+        return electron_1.ipcRenderer.invoke('load-memo', name);
+    },
+    saveMemo: (name, content) => {
+        return electron_1.ipcRenderer.invoke('save-memo', name, content);
+    },
 });
