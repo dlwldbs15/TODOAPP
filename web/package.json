@@ -1,7 +1,7 @@
 {
   "name": "todo-app",
   "private": true,
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "TODO App with Obsidian Integration",
   "main": "electron/main.cjs",
   "type": "module",
