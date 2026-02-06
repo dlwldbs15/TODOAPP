@@ -1,6 +1,7 @@
-import { app, BrowserWindow, ipcMain, Menu, Notification, Tray, nativeImage } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu, Notification, Tray, nativeImage, dialog } from 'electron'
 import path from 'path'
 import fs from 'fs'
+import { autoUpdater } from 'electron-updater'
 
 declare const __dirname: string
 
@@ -324,10 +325,42 @@ function createTray(): void {
   })
 }
 
+function setupAutoUpdater(): void {
+  if (isDev) return
+
+  autoUpdater.autoDownload = true
+  autoUpdater.autoInstallOnAppQuit = true
+
+  autoUpdater.on('update-available', (info) => {
+    console.log('Update available:', info.version)
+  })
+
+  autoUpdater.on('update-downloaded', (info) => {
+    dialog.showMessageBox({
+      type: 'info',
+      title: '업데이트 완료',
+      message: `새 버전 (v${info.version})이 다운로드되었습니다.\n앱을 재시작하면 업데이트가 적용됩니다.`,
+      buttons: ['지금 재시작', '나중에'],
+      defaultId: 0,
+    }).then((result) => {
+      if (result.response === 0) {
+        autoUpdater.quitAndInstall()
+      }
+    })
+  })
+
+  autoUpdater.on('error', (error) => {
+    console.error('Auto-update error:', error)
+  })
+
+  autoUpdater.checkForUpdatesAndNotify()
+}
+
 app.whenReady().then(() => {
   createWindow()
   createTray()
   initAutoLaunch()
+  setupAutoUpdater()
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

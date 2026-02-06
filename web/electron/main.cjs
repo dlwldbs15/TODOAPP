@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const electron_1 = require("electron");
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
+const electron_updater_1 = require("electron-updater");
 const isDev = process.env.NODE_ENV === 'development';
 // Windows 알림에서 앱 이름 표시를 위한 설정
 electron_1.app.setAppUserModelId('com.todoapp.app');
@@ -221,7 +222,7 @@ function createWindow() {
     }
     mainWindow = new electron_1.BrowserWindow({
         width: 450,
-        height: 700,
+        height: 900,
         frame: false,
         autoHideMenuBar: true,
         icon: path_1.default.join(__dirname, '../build/icon.ico'),
@@ -282,10 +283,37 @@ function createTray() {
         mainWindow?.focus();
     });
 }
+function setupAutoUpdater() {
+    if (isDev)
+        return;
+    electron_updater_1.autoUpdater.autoDownload = true;
+    electron_updater_1.autoUpdater.autoInstallOnAppQuit = true;
+    electron_updater_1.autoUpdater.on('update-available', (info) => {
+        console.log('Update available:', info.version);
+    });
+    electron_updater_1.autoUpdater.on('update-downloaded', (info) => {
+        electron_1.dialog.showMessageBox({
+            type: 'info',
+            title: '업데이트 완료',
+            message: `새 버전 (v${info.version})이 다운로드되었습니다.\n앱을 재시작하면 업데이트가 적용됩니다.`,
+            buttons: ['지금 재시작', '나중에'],
+            defaultId: 0,
+        }).then((result) => {
+            if (result.response === 0) {
+                electron_updater_1.autoUpdater.quitAndInstall();
+            }
+        });
+    });
+    electron_updater_1.autoUpdater.on('error', (error) => {
+        console.error('Auto-update error:', error);
+    });
+    electron_updater_1.autoUpdater.checkForUpdatesAndNotify();
+}
 electron_1.app.whenReady().then(() => {
     createWindow();
     createTray();
     initAutoLaunch();
+    setupAutoUpdater();
     electron_1.app.on('activate', () => {
         if (electron_1.BrowserWindow.getAllWindows().length === 0) {
             createWindow();

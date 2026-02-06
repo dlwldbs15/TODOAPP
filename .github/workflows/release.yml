@@ -1,0 +1,95 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        working-directory: web
+        run: npm ci
+
+      - name: Build React app
+        working-directory: web
+        run: npm run build
+
+      - name: Compile Electron TypeScript
+        working-directory: web
+        run: |
+          npx tsc -p tsconfig.electron.json
+          if (Test-Path electron/main.js) { Move-Item -Force electron/main.js electron/main.cjs }
+          if (Test-Path electron/preload.js) { Move-Item -Force electron/preload.js electron/preload.cjs }
+        shell: pwsh
+
+      - name: Build Windows installer
+        working-directory: web
+        run: npx electron-builder --win --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: |
+            web/dist-electron/*.exe
+            web/dist-electron/*.yml
+
+  build-mac:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        working-directory: web
+        run: npm ci
+
+      - name: Build React app
+        working-directory: web
+        run: npm run build
+
+      - name: Compile Electron TypeScript
+        working-directory: web
+        run: |
+          npx tsc -p tsconfig.electron.json
+          mv electron/main.js electron/main.cjs
+          mv electron/preload.js electron/preload.cjs
+
+      - name: Build Mac installer
+        working-directory: web
+        run: npx electron-builder --mac --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-installer
+          path: |
+            web/dist-electron/*.dmg
+            web/dist-electron/*.zip
+            web/dist-electron/*.yml
