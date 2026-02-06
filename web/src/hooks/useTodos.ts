@@ -409,6 +409,10 @@ declare global {
       showNotification: (title: string, body: string) => void;
       loadMemo: (name: string) => Promise<string>;
       saveMemo: (name: string, content: string) => Promise<void>;
+      windowMinimize: () => void;
+      windowMaximize: () => void;
+      windowClose: () => void;
+      windowIsMaximized: () => Promise<boolean>;
     };
   }
 }

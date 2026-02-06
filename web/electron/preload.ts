@@ -41,4 +41,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveMemo: (name: string, content: string): Promise<void> => {
     return ipcRenderer.invoke('save-memo', name, content)
   },
+  windowMinimize: (): void => {
+    ipcRenderer.invoke('window-minimize')
+  },
+  windowMaximize: (): void => {
+    ipcRenderer.invoke('window-maximize')
+  },
+  windowClose: (): void => {
+    ipcRenderer.invoke('window-close')
+  },
+  windowIsMaximized: (): Promise<boolean> => {
+    return ipcRenderer.invoke('window-is-maximized')
+  },
 })

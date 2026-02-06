@@ -11,6 +11,8 @@ const isDev = process.env.NODE_ENV === 'development';
 electron_1.app.setAppUserModelId('com.todoapp.app');
 electron_1.app.setName('TODO App');
 let mainWindow = null;
+let tray = null;
+let isQuitting = false;
 function getConfigPath() {
     return path_1.default.join(electron_1.app.getPath('userData'), 'config.json');
 }
@@ -220,6 +222,7 @@ function createWindow() {
     mainWindow = new electron_1.BrowserWindow({
         width: 450,
         height: 700,
+        frame: false,
         autoHideMenuBar: true,
         icon: path_1.default.join(__dirname, '../build/icon.ico'),
         webPreferences: {
@@ -239,18 +242,58 @@ function createWindow() {
         const indexPath = path_1.default.join(__dirname, '../dist/index.html');
         mainWindow.loadFile(indexPath);
     }
+    // 닫기 버튼 클릭 시 트레이로 최소화 (실제 종료 아님)
+    mainWindow.on('close', (event) => {
+        if (!isQuitting) {
+            event.preventDefault();
+            mainWindow?.hide();
+        }
+    });
     mainWindow.on('closed', () => {
         mainWindow = null;
     });
 }
+function createTray() {
+    const iconPath = path_1.default.join(__dirname, '../build/icon.ico');
+    const icon = electron_1.nativeImage.createFromPath(iconPath);
+    tray = new electron_1.Tray(icon);
+    const contextMenu = electron_1.Menu.buildFromTemplate([
+        {
+            label: '열기',
+            click: () => {
+                mainWindow?.show();
+                mainWindow?.focus();
+            },
+        },
+        { type: 'separator' },
+        {
+            label: '종료',
+            click: () => {
+                isQuitting = true;
+                electron_1.app.quit();
+            },
+        },
+    ]);
+    tray.setToolTip('TODO App');
+    tray.setContextMenu(contextMenu);
+    // 트레이 아이콘 더블클릭 시 창 열기
+    tray.on('double-click', () => {
+        mainWindow?.show();
+        mainWindow?.focus();
+    });
+}
 electron_1.app.whenReady().then(() => {
     createWindow();
+    createTray();
     initAutoLaunch();
     electron_1.app.on('activate', () => {
         if (electron_1.BrowserWindow.getAllWindows().length === 0) {
             createWindow();
         }
     });
+});
+electron_1.app.on('before-quit', () => {
+    isQuitting = true;
 });
 electron_1.app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
@@ -292,4 +335,22 @@ electron_1.ipcMain.handle('load-memo', (_event, name) => {
 });
 electron_1.ipcMain.handle('save-memo', (_event, name, content) => {
     saveMemo(name, content);
+});
+// Window control handlers
+electron_1.ipcMain.handle('window-minimize', () => {
+    mainWindow?.minimize();
+});
+electron_1.ipcMain.handle('window-maximize', () => {
+    if (mainWindow?.isMaximized()) {
+        mainWindow.unmaximize();
+    }
+    else {
+        mainWindow?.maximize();
+    }
+});
+electron_1.ipcMain.handle('window-close', () => {
+    mainWindow?.close();
+});
+electron_1.ipcMain.handle('window-is-maximized', () => {
+    return mainWindow?.isMaximized() ?? false;
 });

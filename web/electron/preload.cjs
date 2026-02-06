@@ -29,4 +29,16 @@ electron_1.contextBridge.exposeInMainWorld('electronAPI', {
     saveMemo: (name, content) => {
         return electron_1.ipcRenderer.invoke('save-memo', name, content);
     },
+    windowMinimize: () => {
+        electron_1.ipcRenderer.invoke('window-minimize');
+    },
+    windowMaximize: () => {
+        electron_1.ipcRenderer.invoke('window-maximize');
+    },
+    windowClose: () => {
+        electron_1.ipcRenderer.invoke('window-close');
+    },
+    windowIsMaximized: () => {
+        return electron_1.ipcRenderer.invoke('window-is-maximized');
+    },
 });

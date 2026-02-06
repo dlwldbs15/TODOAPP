@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu, Notification } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu, Notification, Tray, nativeImage } from 'electron'
 import path from 'path'
 import fs from 'fs'
 
@@ -11,6 +11,8 @@ app.setAppUserModelId('com.todoapp.app')
 app.setName('TODO App')
 
 let mainWindow: typeof BrowserWindow.prototype | null = null
+let tray: typeof Tray.prototype | null = null
+let isQuitting = false
 
 function getConfigPath(): string {
   return path.join(app.getPath('userData'), 'config.json')
@@ -254,7 +256,8 @@ function createWindow(): void {
 
   mainWindow = new BrowserWindow({
     width: 450,
-    height: 700,
+    height: 900,
+    frame: false,
     autoHideMenuBar: true,
     icon: path.join(__dirname, '../build/icon.ico'),
     webPreferences: {
@@ -275,13 +278,55 @@ function createWindow(): void {
     mainWindow.loadFile(indexPath)
   }
 
+  // 닫기 버튼 클릭 시 트레이로 최소화 (실제 종료 아님)
+  mainWindow.on('close', (event) => {
+    if (!isQuitting) {
+      event.preventDefault()
+      mainWindow?.hide()
+    }
+  })
+
   mainWindow.on('closed', () => {
     mainWindow = null
   })
 }
 
+function createTray(): void {
+  const iconPath = path.join(__dirname, '../build/icon.ico')
+  const icon = nativeImage.createFromPath(iconPath)
+  tray = new Tray(icon)
+
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: '열기',
+      click: () => {
+        mainWindow?.show()
+        mainWindow?.focus()
+      },
+    },
+    { type: 'separator' },
+    {
+      label: '종료',
+      click: () => {
+        isQuitting = true
+        app.quit()
+      },
+    },
+  ])
+
+  tray.setToolTip('TODO App')
+  tray.setContextMenu(contextMenu)
+
+  // 트레이 아이콘 더블클릭 시 창 열기
+  tray.on('double-click', () => {
+    mainWindow?.show()
+    mainWindow?.focus()
+  })
+}
+
 app.whenReady().then(() => {
   createWindow()
+  createTray()
   initAutoLaunch()
 
   app.on('activate', () => {
@@ -289,6 +334,10 @@ app.whenReady().then(() => {
       createWindow()
     }
   })
+})
+
+app.on('before-quit', () => {
+  isQuitting = true
 })
 
 app.on('window-all-closed', () => {
@@ -340,4 +389,25 @@ ipcMain.handle('load-memo', (_event: unknown, name: string) => {
 
 ipcMain.handle('save-memo', (_event: unknown, name: string, content: string) => {
   saveMemo(name, content)
+})
+
+// Window control handlers
+ipcMain.handle('window-minimize', () => {
+  mainWindow?.minimize()
+})
+
+ipcMain.handle('window-maximize', () => {
+  if (mainWindow?.isMaximized()) {
+    mainWindow.unmaximize()
+  } else {
+    mainWindow?.maximize()
+  }
+})
+
+ipcMain.handle('window-close', () => {
+  mainWindow?.close()
+})
+
+ipcMain.handle('window-is-maximized', () => {
+  return mainWindow?.isMaximized() ?? false
 })
