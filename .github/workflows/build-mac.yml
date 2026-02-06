@@ -9,6 +9,9 @@ on:
         default: 'true'
         type: boolean
 
+permissions:
+  contents: write
+
 jobs:
   build-mac:
     runs-on: macos-latest
