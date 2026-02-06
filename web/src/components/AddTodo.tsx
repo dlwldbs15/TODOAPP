@@ -1,21 +1,37 @@
 import { useState } from 'react'
+import type { Recurrence, RecurrenceType } from '../types/todo'
 
 interface AddTodoProps {
-  onAdd: (text: string, reminder?: string) => void
+  onAdd: (text: string, reminder?: string, recurrence?: Recurrence) => void
+}
+
+const recurrenceLabels: Record<RecurrenceType, string> = {
+  daily: '일',
+  weekly: '주',
+  monthly: '월',
 }
 
 export function AddTodo({ onAdd }: AddTodoProps) {
   const [text, setText] = useState('')
   const [showReminder, setShowReminder] = useState(false)
   const [reminder, setReminder] = useState('')
+  const [showRecurrence, setShowRecurrence] = useState(false)
+  const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>('daily')
+  const [recurrenceInterval, setRecurrenceInterval] = useState(1)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (text.trim()) {
-      onAdd(text.trim(), reminder || undefined)
+      const recurrence = showRecurrence
+        ? { type: recurrenceType, interval: recurrenceInterval }
+        : undefined
+      onAdd(text.trim(), reminder || undefined, recurrence)
       setText('')
       setReminder('')
       setShowReminder(false)
+      setShowRecurrence(false)
+      setRecurrenceType('daily')
+      setRecurrenceInterval(1)
     }
   }
 
@@ -27,12 +43,28 @@ export function AddTodo({ onAdd }: AddTodoProps) {
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="할 일을 입력하세요..."
-          className="w-full p-4 pr-28 rounded-2xl bg-white dark:bg-slate-800 shadow-lg
+          className="w-full p-4 pr-36 rounded-2xl bg-white dark:bg-slate-800 shadow-lg
             outline-none focus:ring-2 focus:ring-indigo-500 transition-all
             text-slate-900 dark:text-slate-100
             placeholder-slate-400 dark:placeholder-slate-500"
         />
         <div className="absolute right-2 top-2 bottom-2 flex gap-1">
+          {/* 주기 반복 버튼 */}
+          <button
+            type="button"
+            onClick={() => setShowRecurrence(!showRecurrence)}
+            className={`px-3 rounded-xl transition-colors ${
+              showRecurrence
+                ? 'bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400'
+                : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600'
+            }`}
+            title="주기 반복 설정"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
+          {/* 리마인더 버튼 */}
           <button
             type="button"
             onClick={() => setShowReminder(!showReminder)}
@@ -58,6 +90,52 @@ export function AddTodo({ onAdd }: AddTodoProps) {
           </button>
         </div>
       </div>
+
+      {/* 주기 반복 설정 */}
+      {showRecurrence && (
+        <div className="mt-3 flex items-center gap-3 px-4 py-3 rounded-xl bg-white dark:bg-slate-800 shadow-md">
+          <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <span className="text-sm text-slate-600 dark:text-slate-300">매</span>
+          <input
+            type="number"
+            min={1}
+            max={365}
+            value={recurrenceInterval}
+            onChange={(e) => setRecurrenceInterval(Math.max(1, parseInt(e.target.value) || 1))}
+            className="w-16 px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-700
+              text-slate-900 dark:text-slate-100 outline-none text-sm text-center"
+          />
+          <div className="flex gap-1">
+            {(Object.keys(recurrenceLabels) as RecurrenceType[]).map((type) => (
+              <button
+                key={type}
+                type="button"
+                onClick={() => setRecurrenceType(type)}
+                className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                  recurrenceType === type
+                    ? 'bg-green-500 text-white'
+                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                }`}
+              >
+                {recurrenceLabels[type]}
+              </button>
+            ))}
+          </div>
+          <span className="text-sm text-slate-600 dark:text-slate-300">마다</span>
+          <button
+            type="button"
+            onClick={() => setShowRecurrence(false)}
+            className="p-1 rounded text-slate-400 hover:text-red-500 transition-colors ml-auto"
+            title="주기 설정 취소"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
 
       {/* 리마인더 입력 */}
       {showReminder && (

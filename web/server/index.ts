@@ -16,9 +16,19 @@ interface Config {
   vault_path: string
 }
 
+interface Recurrence {
+  type: 'daily' | 'weekly' | 'monthly'
+  interval: number
+}
+
 interface Todo {
   text: string
   completed: boolean
+  originalDate?: string
+  pinned?: boolean
+  bookmarked?: boolean
+  reminder?: string
+  recurrence?: Recurrence
 }
 
 function loadConfig(): Config | null {
@@ -56,6 +66,21 @@ function ensureTodoFolder(): void {
   }
 }
 
+// 메타데이터 파싱: <!-- {"pinned":true,"recurrence":{"type":"daily","interval":1}} -->
+function parseMetadata(text: string): { cleanText: string; meta: Partial<Todo> } {
+  const metaMatch = text.match(/\s*<!--\s*(\{.*?\})\s*-->$/)
+  if (metaMatch) {
+    try {
+      const meta = JSON.parse(metaMatch[1])
+      const cleanText = text.replace(metaMatch[0], '').trim()
+      return { cleanText, meta }
+    } catch {
+      return { cleanText: text, meta: {} }
+    }
+  }
+  return { cleanText: text, meta: {} }
+}
+
 function loadTodos(date: string): Todo[] {
   const todoFolder = getTodoFolder()
   if (!todoFolder) return []
@@ -70,9 +95,11 @@ function loadTodos(date: string): Todo[] {
     for (const line of content.split('\n')) {
       const trimmed = line.trim()
       if (trimmed.startsWith('- [ ]')) {
-        todos.push({ text: trimmed.slice(6), completed: false })
+        const { cleanText, meta } = parseMetadata(trimmed.slice(6))
+        todos.push({ text: cleanText, completed: false, ...meta })
       } else if (trimmed.startsWith('- [x]') || trimmed.startsWith('- [X]')) {
-        todos.push({ text: trimmed.slice(6), completed: true })
+        const { cleanText, meta } = parseMetadata(trimmed.slice(6))
+        todos.push({ text: cleanText, completed: true, ...meta })
       }
     }
 
@@ -81,6 +108,19 @@ function loadTodos(date: string): Todo[] {
     console.error('Failed to load todos:', error)
     return []
   }
+}
+
+// 메타데이터를 HTML 주석으로 직렬화
+function serializeMetadata(todo: Todo): string {
+  const meta: Record<string, unknown> = {}
+  if (todo.pinned) meta.pinned = true
+  if (todo.bookmarked) meta.bookmarked = true
+  if (todo.originalDate) meta.originalDate = todo.originalDate
+  if (todo.reminder) meta.reminder = todo.reminder
+  if (todo.recurrence) meta.recurrence = todo.recurrence
+
+  if (Object.keys(meta).length === 0) return ''
+  return ` <!-- ${JSON.stringify(meta)} -->`
 }
 
 function saveTodos(date: string, todos: Todo[]): void {
@@ -93,16 +133,25 @@ function saveTodos(date: string, todos: Todo[]): void {
   const now = new Date()
   const timestamp = now.toISOString().replace('T', ' ').slice(0, 19)
 
-  const incomplete = todos.filter(t => !t.completed)
+  const pinned = todos.filter(t => t.pinned && !t.completed)
+  const incomplete = todos.filter(t => !t.pinned && !t.completed)
   const completed = todos.filter(t => t.completed)
 
   let content = `# TODO - ${date}\n\n`
   content += `_Last updated: ${timestamp}_\n\n`
 
+  if (pinned.length > 0) {
+    content += `## 📌 고정\n\n`
+    for (const todo of pinned) {
+      content += `- [ ] ${todo.text}${serializeMetadata(todo)}\n`
+    }
+    content += '\n'
+  }
+
   if (incomplete.length > 0) {
     content += `## 미완료\n\n`
     for (const todo of incomplete) {
-      content += `- [ ] ${todo.text}\n`
+      content += `- [ ] ${todo.text}${serializeMetadata(todo)}\n`
     }
     content += '\n'
   }
@@ -110,7 +159,7 @@ function saveTodos(date: string, todos: Todo[]): void {
   if (completed.length > 0) {
     content += `## 완료\n\n`
     for (const todo of completed) {
-      content += `- [x] ${todo.text}\n`
+      content += `- [x] ${todo.text}${serializeMetadata(todo)}\n`
     }
   }
 

@@ -163,6 +163,10 @@ function serializeMetadata(todo) {
         meta.bookmarked = true;
     if (todo.originalDate)
         meta.originalDate = todo.originalDate;
+    if (todo.reminder)
+        meta.reminder = todo.reminder;
+    if (todo.recurrence)
+        meta.recurrence = todo.recurrence;
     if (Object.keys(meta).length === 0)
         return '';
     return ` <!-- ${JSON.stringify(meta)} -->`;

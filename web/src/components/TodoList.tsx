@@ -14,7 +14,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
-import type { Todo } from '../types/todo'
+import type { Todo, Recurrence } from '../types/todo'
 import { TodoItem, TodoItemOverlay } from './TodoItem'
 import { getLocalDateString, type BookmarkedTodosByDate } from '../hooks/useTodos'
 
@@ -25,7 +25,7 @@ interface TodoListProps {
   onPin: (index: number) => void
   onBookmark: (index: number) => void
   onDelete: (index: number) => void
-  onUpdate: (index: number, text: string, reminder?: string) => void
+  onUpdate: (index: number, text: string, reminder?: string, recurrence?: Recurrence) => void
   onReorder: (oldIndex: number, newIndex: number) => void
   bookmarkMode?: boolean
   bookmarkedTodos?: BookmarkedTodosByDate

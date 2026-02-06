@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import type { Todo } from "../types/todo";
+import type { Todo, Recurrence } from "../types/todo";
 
 // Check if running in Electron
 const isElectron = () => {
@@ -256,10 +256,10 @@ export function useTodos(date: string) {
   );
 
   const addTodo = useCallback(
-    async (text: string, reminder?: string) => {
+    async (text: string, reminder?: string, recurrence?: Recurrence) => {
       const newTodos = [
         ...todos,
-        { text, completed: false, originalDate: date, reminder },
+        { text, completed: false, originalDate: date, reminder, recurrence },
       ];
       await saveTodos(newTodos);
     },
@@ -268,12 +268,47 @@ export function useTodos(date: string) {
 
   const toggleTodo = useCallback(
     async (index: number) => {
-      const newTodos = todos.map((todo, i) =>
-        i === index ? { ...todo, completed: !todo.completed } : todo,
+      const todo = todos[index];
+      const willComplete = !todo.completed;
+
+      const newTodos = todos.map((t, i) =>
+        i === index ? { ...t, completed: willComplete } : t,
       );
       await saveTodos(newTodos);
+
+      // 반복 설정된 TODO를 완료하면 다음 주기 날짜에 새 TODO 자동 생성
+      if (willComplete && todo.recurrence) {
+        const baseDate = new Date((todo.originalDate || date) + "T00:00:00");
+        const { type, interval } = todo.recurrence;
+
+        if (type === "daily") {
+          baseDate.setDate(baseDate.getDate() + interval);
+        } else if (type === "weekly") {
+          baseDate.setDate(baseDate.getDate() + interval * 7);
+        } else if (type === "monthly") {
+          baseDate.setMonth(baseDate.getMonth() + interval);
+        }
+
+        const nextDate = getLocalDateString(baseDate);
+        const existingTodos = await loadTodosForDate(nextDate);
+
+        // 동일 텍스트+반복 설정의 TODO가 이미 있으면 중복 생성하지 않음
+        const alreadyExists = existingTodos.some(
+          (t) => t.text === todo.text && t.recurrence?.type === todo.recurrence?.type && t.recurrence?.interval === todo.recurrence?.interval,
+        );
+
+        if (!alreadyExists) {
+          const nextTodo: Todo = {
+            text: todo.text,
+            completed: false,
+            originalDate: nextDate,
+            recurrence: todo.recurrence,
+          };
+          await saveTodosToDate(nextDate, [...existingTodos, nextTodo]);
+        }
+      }
     },
-    [todos, saveTodos],
+    [todos, saveTodos, date, saveTodosToDate],
   );
 
   const togglePin = useCallback(
@@ -305,9 +340,9 @@ export function useTodos(date: string) {
   );
 
   const updateTodo = useCallback(
-    async (index: number, text: string, reminder?: string) => {
+    async (index: number, text: string, reminder?: string, recurrence?: Recurrence) => {
       const newTodos = todos.map((todo, i) =>
-        i === index ? { ...todo, text, reminder } : todo,
+        i === index ? { ...todo, text, reminder, recurrence } : todo,
       );
       await saveTodos(newTodos);
     },

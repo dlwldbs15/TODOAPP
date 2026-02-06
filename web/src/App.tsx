@@ -37,8 +37,8 @@ function App() {
     localStorage.setItem('darkMode', JSON.stringify(darkMode))
   }, [darkMode])
 
-  const handleAddTodo = async (text: string, reminder?: string) => {
-    await addTodo(text, reminder)
+  const handleAddTodo = async (text: string, reminder?: string, recurrence?: import('./types/todo').Recurrence) => {
+    await addTodo(text, reminder, recurrence)
   }
 
   const handleToggle = async (index: number) => {
@@ -49,8 +49,8 @@ function App() {
     await deleteTodo(index)
   }
 
-  const handleUpdate = async (index: number, text: string, reminder?: string) => {
-    await updateTodo(index, text, reminder)
+  const handleUpdate = async (index: number, text: string, reminder?: string, recurrence?: import('./types/todo').Recurrence) => {
+    await updateTodo(index, text, reminder, recurrence)
   }
 
   const handleReorder = async (oldIndex: number, newIndex: number) => {

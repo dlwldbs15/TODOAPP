@@ -1,3 +1,10 @@
+export type RecurrenceType = 'daily' | 'weekly' | 'monthly';
+
+export interface Recurrence {
+  type: RecurrenceType; // 일, 주, 월
+  interval: number; // 반복 간격 (예: 2일마다, 3주마다)
+}
+
 export interface Todo {
   text: string;
   completed: boolean;
@@ -5,6 +12,7 @@ export interface Todo {
   pinned?: boolean; // 상단 고정 여부
   bookmarked?: boolean; // 북마크 여부
   reminder?: string; // 리마인더 시간 (ISO 형식: "2024-02-04T14:30")
+  recurrence?: Recurrence; // 주기 반복 설정
 }
 
 export interface TodoFile {

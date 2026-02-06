@@ -126,12 +126,19 @@ function ensureTodoFolder(): void {
   }
 }
 
+interface Recurrence {
+  type: 'daily' | 'weekly' | 'monthly'
+  interval: number
+}
+
 interface Todo {
   text: string
   completed: boolean
   originalDate?: string
   pinned?: boolean
   bookmarked?: boolean
+  reminder?: string
+  recurrence?: Recurrence
 }
 
 // 메타데이터 파싱: <!-- {"pinned":true,"bookmarked":true,"originalDate":"2026-02-03"} -->
@@ -184,6 +191,8 @@ function serializeMetadata(todo: Todo): string {
   if (todo.pinned) meta.pinned = true
   if (todo.bookmarked) meta.bookmarked = true
   if (todo.originalDate) meta.originalDate = todo.originalDate
+  if (todo.reminder) meta.reminder = todo.reminder
+  if (todo.recurrence) meta.recurrence = todo.recurrence
 
   if (Object.keys(meta).length === 0) return ''
   return ` <!-- ${JSON.stringify(meta)} -->`
