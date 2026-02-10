@@ -37,3 +37,11 @@ web/dist-electron/
 web/server-dist/
 web/*.cjs
 web/electron/*.cjs
+
+# iOS (Capacitor)
+web/ios/App/Pods/
+web/ios/App/*.xcworkspace
+web/ios/App/Podfile.lock
+web/ios/App/App.xcodeproj/xcuserdata/
+web/ios/App/App.xcodeproj/project.xcworkspace/xcuserdata/
+web/ios/App/DerivedData/
