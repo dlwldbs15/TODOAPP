@@ -114,22 +114,24 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                Obsidian Vault 경로
+                저장 경로
               </label>
               <input
                 type="text"
                 value={vaultPath}
                 onChange={(e) => setVaultPath(e.target.value)}
-                placeholder="예: C:\Users\Username\Documents\ObsidianVault"
+                placeholder="예: C:\Users\Username\iCloudDrive\Obsidian\MyVault"
                 className="w-full p-3 rounded-xl bg-slate-100 dark:bg-slate-700
                   text-slate-900 dark:text-slate-100
                   placeholder-slate-400 dark:placeholder-slate-500
                   outline-none focus:ring-2 focus:ring-indigo-500"
               />
               <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                TODO 파일이 저장될 Obsidian vault의 경로를 입력하세요.
+                TODO 파일이 저장될 폴더 경로를 입력하세요.
                 <br />
-                vault 내에 TODO 폴더가 자동 생성됩니다.
+                iCloud, Obsidian vault 등 어디든 지정 가능합니다.
+                <br />
+                해당 경로 내에 TODO 폴더가 자동 생성됩니다.
               </p>
             </div>
 
