@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import type { Todo, Recurrence, RecurrenceType } from '../types/todo'
+import { isCapacitor } from '../utils/platform'
 
 interface TodoItemProps {
   id: number
@@ -43,6 +44,8 @@ const formatRecurrenceLabel = (recurrence: Recurrence): string => {
 }
 
 export function TodoItem({ id, todo, index, isCarryover = false, onToggle, onPin, onBookmark, onDelete, onUpdate }: TodoItemProps) {
+  const mobile = isCapacitor()
+  const hoverShow = mobile ? '' : 'opacity-0 group-hover:opacity-100'
   const [isEditing, setIsEditing] = useState(false)
   const [editText, setEditText] = useState(todo.text)
   const [editReminder, setEditReminder] = useState(todo.reminder || '')
@@ -279,7 +282,7 @@ export function TodoItem({ id, todo, index, isCarryover = false, onToggle, onPin
           className={`p-1.5 rounded-lg transition-colors ${
             todo.pinned
               ? 'text-blue-500 dark:text-blue-400'
-              : 'text-slate-400 hover:text-blue-500 opacity-0 group-hover:opacity-100'
+              : `text-slate-400 hover:text-blue-500 ${hoverShow}`
           }`}
           title={todo.pinned ? '고정 해제' : '상단 고정'}
         >
@@ -296,7 +299,7 @@ export function TodoItem({ id, todo, index, isCarryover = false, onToggle, onPin
           className={`p-1.5 rounded-lg transition-colors ${
             todo.bookmarked
               ? 'text-amber-500 dark:text-amber-400'
-              : 'text-slate-400 hover:text-amber-500 opacity-0 group-hover:opacity-100'
+              : `text-slate-400 hover:text-amber-500 ${hoverShow}`
           }`}
           title={todo.bookmarked ? '북마크 해제' : '북마크'}
         >
@@ -309,7 +312,7 @@ export function TodoItem({ id, todo, index, isCarryover = false, onToggle, onPin
             e.stopPropagation()
             handleEdit()
           }}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors opacity-0 group-hover:opacity-100"
+          className={`p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors ${hoverShow}`}
           title="수정"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -321,7 +324,7 @@ export function TodoItem({ id, todo, index, isCarryover = false, onToggle, onPin
             e.stopPropagation()
             onDelete(index)
           }}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors opacity-0 group-hover:opacity-100"
+          className={`p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors ${hoverShow}`}
           title="삭제"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
