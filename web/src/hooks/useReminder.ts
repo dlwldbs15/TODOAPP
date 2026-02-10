@@ -1,5 +1,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import type { Todo } from "../types/todo";
+import { isCapacitor } from "../utils/platform";
+import { LocalNotifications } from "@capacitor/local-notifications";
 
 interface UseReminderOptions {
   todos: Todo[];
@@ -14,6 +16,12 @@ export function useReminder({ todos, onReminderTriggered }: UseReminderOptions) 
     // Electron 환경이면 권한 요청 불필요
     if (window.electronAPI?.showNotification) {
       return true;
+    }
+
+    // Capacitor 환경
+    if (isCapacitor()) {
+      const result = await LocalNotifications.requestPermissions();
+      return result.display === "granted";
     }
 
     if (!("Notification" in window)) {
@@ -38,6 +46,21 @@ export function useReminder({ todos, onReminderTriggered }: UseReminderOptions) 
     // Electron 환경이면 네이티브 알림 사용
     if (window.electronAPI?.showNotification) {
       window.electronAPI.showNotification("📋 할 일 리마인더", todo.text);
+      return;
+    }
+
+    // Capacitor 환경이면 Local Notifications 사용
+    if (isCapacitor()) {
+      LocalNotifications.schedule({
+        notifications: [
+          {
+            title: "📋 할 일 리마인더",
+            body: todo.text,
+            id: Date.now(),
+            schedule: { at: new Date() },
+          },
+        ],
+      });
       return;
     }
 
@@ -97,6 +120,7 @@ export function useReminder({ todos, onReminderTriggered }: UseReminderOptions) 
   // 알림 권한 상태 반환
   const getPermissionStatus = useCallback(() => {
     if (window.electronAPI?.showNotification) return "granted";
+    if (isCapacitor()) return "granted";
     if (!("Notification" in window)) return "unsupported";
     return Notification.permission;
   }, []);

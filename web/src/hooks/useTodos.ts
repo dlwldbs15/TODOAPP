@@ -1,10 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import type { Todo, Recurrence } from "../types/todo";
-
-// Check if running in Electron
-const isElectron = () => {
-  return typeof window !== "undefined" && window.electronAPI !== undefined;
-};
+import { isElectron, isCapacitor } from "../utils/platform";
+import * as capStorage from "../services/capacitorStorage";
 
 // API base URL for PWA mode
 const API_BASE = "http://localhost:3001/api";
@@ -28,30 +25,34 @@ const getPreviousDate = (dateStr: string): string => {
 const loadTodosForDate = async (targetDate: string): Promise<Todo[]> => {
   if (isElectron() && window.electronAPI) {
     return await window.electronAPI.loadTodos(targetDate);
-  } else {
-    // localStorage를 항상 우선 사용 (안정성 보장)
-    const stored = localStorage.getItem(`todos-${targetDate}`);
-    if (stored) {
-      return JSON.parse(stored);
-    }
-
-    // localStorage에 없으면 API 시도
-    try {
-      const res = await fetch(`${API_BASE}/todos?date=${targetDate}`);
-      if (res.ok) {
-        const data = await res.json();
-        const todos = data.todos || [];
-        // API에서 가져온 데이터를 localStorage에도 저장
-        if (todos.length > 0) {
-          localStorage.setItem(`todos-${targetDate}`, JSON.stringify(todos));
-        }
-        return todos;
-      }
-    } catch {
-      // API 실패
-    }
-    return [];
   }
+
+  if (isCapacitor()) {
+    return await capStorage.loadTodos(targetDate);
+  }
+
+  // Web/PWA: localStorage를 항상 우선 사용 (안정성 보장)
+  const stored = localStorage.getItem(`todos-${targetDate}`);
+  if (stored) {
+    return JSON.parse(stored);
+  }
+
+  // localStorage에 없으면 API 시도
+  try {
+    const res = await fetch(`${API_BASE}/todos?date=${targetDate}`);
+    if (res.ok) {
+      const data = await res.json();
+      const todos = data.todos || [];
+      // API에서 가져온 데이터를 localStorage에도 저장
+      if (todos.length > 0) {
+        localStorage.setItem(`todos-${targetDate}`, JSON.stringify(todos));
+      }
+      return todos;
+    }
+  } catch {
+    // API 실패
+  }
+  return [];
 };
 
 // 북마크된 할 일을 날짜별로 그룹핑하여 반환
@@ -172,24 +173,29 @@ export function useTodos(date: string) {
   // 특정 날짜에 할 일 저장하는 헬퍼
   const saveTodosToDate = useCallback(
     async (targetDate: string, todosToSave: Todo[]) => {
-      // 항상 localStorage에 먼저 저장 (안정성 보장)
-      localStorage.setItem(`todos-${targetDate}`, JSON.stringify(todosToSave));
-
       if (isElectron() && window.electronAPI) {
         await window.electronAPI.saveTodos(targetDate, todosToSave);
-      } else {
-        try {
-          const res = await fetch(`${API_BASE}/todos`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ date: targetDate, todos: todosToSave }),
-          });
-          if (!res.ok) {
-            console.warn("API save failed, using localStorage");
-          }
-        } catch {
-          // API 실패해도 이미 localStorage에 저장했으므로 괜찮음
+        return;
+      }
+
+      if (isCapacitor()) {
+        await capStorage.saveTodos(targetDate, todosToSave);
+        return;
+      }
+
+      // Web/PWA: localStorage에 먼저 저장 (안정성 보장)
+      localStorage.setItem(`todos-${targetDate}`, JSON.stringify(todosToSave));
+      try {
+        const res = await fetch(`${API_BASE}/todos`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ date: targetDate, todos: todosToSave }),
+        });
+        if (!res.ok) {
+          console.warn("API save failed, using localStorage");
         }
+      } catch {
+        // API 실패해도 이미 localStorage에 저장했으므로 괜찮음
       }
     },
     [],

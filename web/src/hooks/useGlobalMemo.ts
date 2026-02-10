@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { isCapacitor } from '../utils/platform'
+import * as capStorage from '../services/capacitorStorage'
 
 const MEMO_STORAGE_KEY = 'memo-global'
 
@@ -15,6 +17,8 @@ export function useGlobalMemo() {
       let data = ''
       if (window.electronAPI?.loadMemo) {
         data = await window.electronAPI.loadMemo('global')
+      } else if (isCapacitor()) {
+        data = await capStorage.loadMemo('global')
       } else {
         data = localStorage.getItem(MEMO_STORAGE_KEY) || ''
       }
@@ -44,6 +48,8 @@ export function useGlobalMemo() {
     try {
       if (window.electronAPI?.saveMemo) {
         await window.electronAPI.saveMemo('global', content)
+      } else if (isCapacitor()) {
+        await capStorage.saveMemo('global', content)
       } else {
         localStorage.setItem(MEMO_STORAGE_KEY, content)
       }

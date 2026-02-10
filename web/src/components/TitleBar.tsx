@@ -1,8 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-
-const isElectron = () => {
-  return typeof window !== 'undefined' && window.electronAPI !== undefined
-}
+import { isElectron } from '../utils/platform'
 
 export function TitleBar() {
   const [isMaximized, setIsMaximized] = useState(false)
