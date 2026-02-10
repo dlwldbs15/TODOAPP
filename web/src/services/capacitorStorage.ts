@@ -108,20 +108,52 @@ async function ensureDirectory(path: string, directory: Directory): Promise<void
   }
 }
 
+// File Picker URI에서 Filesystem이 사용할 수 있는 경로로 변환
+function resolveVaultPath(vaultPath: string, subPath: string): string {
+  // file:// URI인 경우 디코딩하여 사용
+  let base = vaultPath
+  if (base.startsWith('file://')) {
+    base = decodeURIComponent(base.replace('file://', ''))
+  }
+  // 끝의 슬래시 제거
+  if (base.endsWith('/')) {
+    base = base.slice(0, -1)
+  }
+  return `${base}/${subPath}`
+}
+
 // --- Public API ---
 
 export async function loadTodos(date: string): Promise<Todo[]> {
   const config = await getCapacitorConfig()
 
   if (config.storageMode === 'obsidian' && config.vaultPath) {
-    // Obsidian 볼트 직접 접근 (File Picker URI)
+    const filePath = resolveVaultPath(config.vaultPath, `TODO/${date}.md`)
+    console.log('[CapStorage] loadTodos path:', filePath)
+
     try {
       const result = await Filesystem.readFile({
-        path: `${config.vaultPath}/TODO/${date}.md`,
+        path: filePath,
         encoding: Encoding.UTF8,
       })
+      console.log('[CapStorage] loadTodos success, length:', (result.data as string).length)
       return parseTodosFromMarkdown(result.data as string)
-    } catch {
+    } catch (error) {
+      console.error('[CapStorage] loadTodos error:', error)
+
+      // URI 형식 그대로도 시도
+      if (filePath !== `${config.vaultPath}/TODO/${date}.md`) {
+        try {
+          const result = await Filesystem.readFile({
+            path: `${config.vaultPath}/TODO/${date}.md`,
+            encoding: Encoding.UTF8,
+          })
+          console.log('[CapStorage] loadTodos (raw URI) success')
+          return parseTodosFromMarkdown(result.data as string)
+        } catch (error2) {
+          console.error('[CapStorage] loadTodos (raw URI) error:', error2)
+        }
+      }
       return []
     }
   }
@@ -144,13 +176,16 @@ export async function saveTodos(date: string, todos: Todo[]): Promise<void> {
   const content = todosToMarkdown(date, todos)
 
   if (config.storageMode === 'obsidian' && config.vaultPath) {
-    const dir = `${config.vaultPath}/TODO`
+    const dirPath = resolveVaultPath(config.vaultPath, 'TODO')
+    const filePath = resolveVaultPath(config.vaultPath, `TODO/${date}.md`)
+    console.log('[CapStorage] saveTodos path:', filePath)
+
     try {
-      await Filesystem.mkdir({ path: dir, recursive: true })
+      await Filesystem.mkdir({ path: dirPath, recursive: true })
     } catch { /* exists */ }
 
     await Filesystem.writeFile({
-      path: `${dir}/${date}.md`,
+      path: filePath,
       data: content,
       encoding: Encoding.UTF8,
     })
@@ -171,13 +206,15 @@ export async function loadMemo(name: string): Promise<string> {
   const config = await getCapacitorConfig()
 
   if (config.storageMode === 'obsidian' && config.vaultPath) {
+    const filePath = resolveVaultPath(config.vaultPath, `TODO/memo/${name}.md`)
     try {
       const result = await Filesystem.readFile({
-        path: `${config.vaultPath}/TODO/memo/${name}.md`,
+        path: filePath,
         encoding: Encoding.UTF8,
       })
       return result.data as string
-    } catch {
+    } catch (error) {
+      console.error('[CapStorage] loadMemo error:', error)
       return ''
     }
   }
@@ -198,13 +235,14 @@ export async function saveMemo(name: string, content: string): Promise<void> {
   const config = await getCapacitorConfig()
 
   if (config.storageMode === 'obsidian' && config.vaultPath) {
-    const dir = `${config.vaultPath}/TODO/memo`
+    const dirPath = resolveVaultPath(config.vaultPath, 'TODO/memo')
+    const filePath = resolveVaultPath(config.vaultPath, `TODO/memo/${name}.md`)
     try {
-      await Filesystem.mkdir({ path: dir, recursive: true })
+      await Filesystem.mkdir({ path: dirPath, recursive: true })
     } catch { /* exists */ }
 
     await Filesystem.writeFile({
-      path: `${dir}/${name}.md`,
+      path: filePath,
       data: content,
       encoding: Encoding.UTF8,
     })
@@ -218,4 +256,29 @@ export async function saveMemo(name: string, content: string): Promise<void> {
     data: content,
     encoding: Encoding.UTF8,
   })
+}
+
+// 디버그용: 볼트 경로의 TODO 폴더 내 파일 목록 조회
+export async function listTodoFiles(): Promise<string[]> {
+  const config = await getCapacitorConfig()
+
+  try {
+    if (config.storageMode === 'obsidian' && config.vaultPath) {
+      const dirPath = resolveVaultPath(config.vaultPath, 'TODO')
+      console.log('[CapStorage] listing dir:', dirPath)
+      const result = await Filesystem.readdir({ path: dirPath })
+      const files = result.files.map(f => f.name)
+      console.log('[CapStorage] files found:', files)
+      return files
+    }
+
+    const result = await Filesystem.readdir({
+      path: 'TODO',
+      directory: Directory.Documents,
+    })
+    return result.files.map(f => f.name)
+  } catch (error) {
+    console.error('[CapStorage] listTodoFiles error:', error)
+    return []
+  }
 }
