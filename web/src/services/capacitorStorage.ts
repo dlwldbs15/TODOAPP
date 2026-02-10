@@ -266,10 +266,20 @@ export async function listTodoFiles(): Promise<string[]> {
     if (config.storageMode === 'obsidian' && config.vaultPath) {
       const dirPath = resolveVaultPath(config.vaultPath, 'TODO')
       console.log('[CapStorage] listing dir:', dirPath)
-      const result = await Filesystem.readdir({ path: dirPath })
-      const files = result.files.map(f => f.name)
-      console.log('[CapStorage] files found:', files)
-      return files
+
+      try {
+        const result = await Filesystem.readdir({ path: dirPath })
+        const files = result.files.map(f => f.name)
+        console.log('[CapStorage] files found:', files)
+        return files
+      } catch (err: any) {
+        console.error('[CapStorage] readdir error:', err)
+        console.error('[CapStorage] error message:', err?.message)
+        console.error('[CapStorage] error code:', err?.code)
+
+        // 에러를 던져서 UI에 표시
+        throw new Error(`파일 목록 읽기 실패: ${err?.message || err}`)
+      }
     }
 
     const result = await Filesystem.readdir({
@@ -279,6 +289,6 @@ export async function listTodoFiles(): Promise<string[]> {
     return result.files.map(f => f.name)
   } catch (error) {
     console.error('[CapStorage] listTodoFiles error:', error)
-    return []
+    throw error
   }
 }

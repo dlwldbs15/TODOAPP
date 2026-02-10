@@ -8,6 +8,8 @@ import { MemoPanel } from './components/MemoPanel'
 import { TitleBar } from './components/TitleBar'
 import { useTodos, collectBookmarkedTodos, getLocalDateString, type BookmarkedTodosByDate } from './hooks/useTodos'
 import { useReminder } from './hooks/useReminder'
+import { getCapacitorConfig, listTodoFiles } from './services/capacitorStorage'
+import { getPlatform } from './utils/platform'
 
 function App() {
   const [showSettings, setShowSettings] = useState(false)
@@ -86,6 +88,35 @@ function App() {
       setBookmarkedTodos(bookmarked)
     } finally {
       setBookmarkLoading(false)
+    }
+  }
+
+  // 디버그: 설정 및 파일 목록 확인
+  const handleDebug = async () => {
+    const platform = getPlatform()
+    if (platform !== 'capacitor') {
+      alert('Capacitor 플랫폼에서만 사용 가능합니다')
+      return
+    }
+
+    try {
+      const config = await getCapacitorConfig()
+      const files = await listTodoFiles()
+
+      const info = `
+📱 플랫폼: ${platform}
+📂 저장 모드: ${config.storageMode}
+📍 경로: ${config.vaultPath || '(없음)'}
+📄 파일 개수: ${files.length}
+📋 파일 목록:
+${files.length > 0 ? files.join('\n') : '(파일 없음)'}
+      `
+
+      console.log('[DEBUG]', info)
+      alert(info)
+    } catch (error) {
+      console.error('[DEBUG] Error:', error)
+      alert(`에러 발생: ${error}`)
     }
   }
 
@@ -224,6 +255,16 @@ function App() {
           >
             새로고침
           </button>
+
+          {/* Debug Button (Capacitor only) */}
+          {getPlatform() === 'capacitor' && (
+            <button
+              onClick={handleDebug}
+              className="mt-2 w-full py-2 text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-400 transition-colors border border-dashed border-slate-300 dark:border-slate-700 rounded-lg"
+            >
+              🔍 디버그 정보 확인
+            </button>
+          )}
         </div>
       </div>
 

@@ -1,11 +1,5 @@
 import { useState, useEffect } from 'react'
 import { getPlatform, type Platform } from '../utils/platform'
-import {
-  getCapacitorConfig,
-  setCapacitorConfig,
-  type CapacitorConfig,
-} from '../services/capacitorStorage'
-import { FilePicker } from '@capawesome/capacitor-file-picker'
 
 interface SettingsProps {
   isOpen: boolean
@@ -17,7 +11,6 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
   const [autoLaunch, setAutoLaunch] = useState(true)
   const [saved, setSaved] = useState(false)
   const [platform, setPlatform] = useState<Platform>('web')
-  const [capConfig, setCapConfig] = useState<CapacitorConfig>({ storageMode: 'app' })
 
   useEffect(() => {
     const p = getPlatform()
@@ -32,10 +25,6 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
       window.electronAPI.getAutoLaunch().then((enabled) => {
         setAutoLaunch(enabled)
       })
-    }
-
-    if (p === 'capacitor') {
-      getCapacitorConfig().then(setCapConfig)
     }
   }, [isOpen])
 
@@ -56,29 +45,6 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
     setAutoLaunch(enabled)
     if (window.electronAPI) {
       await window.electronAPI.setAutoLaunch(enabled)
-    }
-  }
-
-  // Capacitor 저장 방식 변경
-  const handleStorageModeChange = async (mode: 'app' | 'obsidian') => {
-    const newConfig: CapacitorConfig = { ...capConfig, storageMode: mode }
-    await setCapacitorConfig(newConfig)
-    setCapConfig(newConfig)
-  }
-
-  // Capacitor Obsidian 볼트 폴더 선택
-  const handlePickVaultFolder = async () => {
-    try {
-      const result = await FilePicker.pickDirectory()
-      const newConfig: CapacitorConfig = {
-        ...capConfig,
-        storageMode: 'obsidian',
-        vaultPath: result.path,
-      }
-      await setCapacitorConfig(newConfig)
-      setCapConfig(newConfig)
-    } catch {
-      // 사용자가 취소함
     }
   }
 
@@ -169,65 +135,29 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
         {/* Capacitor 모드 */}
         {platform === 'capacitor' && (
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                저장 방식
-              </label>
-              <div className="space-y-2">
-                <button
-                  onClick={() => handleStorageModeChange('app')}
-                  className={`w-full p-3 rounded-xl text-left transition-colors ${
-                    capConfig.storageMode === 'app'
-                      ? 'bg-indigo-100 dark:bg-indigo-900/50 border-2 border-indigo-500 text-indigo-700 dark:text-indigo-300'
-                      : 'bg-slate-100 dark:bg-slate-700 border-2 border-transparent text-slate-700 dark:text-slate-300'
-                  }`}
-                >
-                  <span className="font-medium block">앱 저장소</span>
-                  <span className="text-xs opacity-70">iCloud를 통해 자동 동기화됩니다</span>
-                </button>
-                <button
-                  onClick={() => handleStorageModeChange('obsidian')}
-                  className={`w-full p-3 rounded-xl text-left transition-colors ${
-                    capConfig.storageMode === 'obsidian'
-                      ? 'bg-indigo-100 dark:bg-indigo-900/50 border-2 border-indigo-500 text-indigo-700 dark:text-indigo-300'
-                      : 'bg-slate-100 dark:bg-slate-700 border-2 border-transparent text-slate-700 dark:text-slate-300'
-                  }`}
-                >
-                  <span className="font-medium block">Obsidian 볼트 연동</span>
-                  <span className="text-xs opacity-70">Obsidian 볼트 폴더를 직접 선택합니다</span>
-                </button>
-              </div>
+            <div className="p-4 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800">
+              <h3 className="font-medium text-indigo-900 dark:text-indigo-100 mb-2">
+                📱 앱 저장소
+              </h3>
+              <p className="text-sm text-indigo-700 dark:text-indigo-300 mb-2">
+                TODO 파일이 앱 내부 저장소에 저장됩니다.
+              </p>
+              <ul className="text-xs text-indigo-600 dark:text-indigo-400 space-y-1">
+                <li>✓ iCloud를 통해 자동 동기화</li>
+                <li>✓ 파일 앱에서 접근 가능</li>
+                <li>✓ 다른 기기와 자동 공유</li>
+              </ul>
             </div>
 
-            {capConfig.storageMode === 'obsidian' && (
-              <div>
-                <button
-                  onClick={handlePickVaultFolder}
-                  className="w-full py-3 px-4 rounded-xl bg-slate-100 dark:bg-slate-700
-                    text-slate-700 dark:text-slate-300 font-medium
-                    hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors
-                    border-2 border-dashed border-slate-300 dark:border-slate-500"
-                >
-                  폴더 선택
-                </button>
-                {capConfig.vaultPath && (
-                  <p className="mt-2 text-xs text-slate-500 dark:text-slate-400 break-all">
-                    선택됨: {capConfig.vaultPath}
-                  </p>
-                )}
-                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                  iCloud Drive에서 Obsidian 볼트 폴더를 선택하세요.
-                  <br />
-                  볼트 내에 TODO 폴더가 자동 생성됩니다.
-                </p>
-              </div>
-            )}
-
-            {saved && (
-              <div className="text-green-600 dark:text-green-400 text-sm font-medium">
-                ✓ 저장되었습니다!
-              </div>
-            )}
+            <div className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="mb-2">📂 <strong>파일 위치:</strong></p>
+              <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded font-mono text-xs">
+                파일 앱 → 나의 iPhone → TODO App → Documents → TODO
+              </p>
+              <p className="mt-2">
+                Mac에서 Obsidian과 연동하려면 심볼릭 링크를 사용하세요.
+              </p>
+            </div>
           </div>
         )}
 
