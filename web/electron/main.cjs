@@ -306,6 +306,11 @@ function setupAutoUpdater() {
     });
     electron_updater_1.autoUpdater.on('error', (error) => {
         console.error('Auto-update error:', error);
+        electron_1.dialog.showMessageBox({
+            type: 'error',
+            title: '업데이트 오류',
+            message: String(error),
+        });
     });
     electron_updater_1.autoUpdater.checkForUpdatesAndNotify();
 }

@@ -351,6 +351,11 @@ function setupAutoUpdater(): void {
 
   autoUpdater.on('error', (error) => {
     console.error('Auto-update error:', error)
+    dialog.showMessageBox({
+      type: 'error',
+      title: '업데이트 오류',
+      message: String(error),
+    })
   })
 
   autoUpdater.checkForUpdatesAndNotify()
