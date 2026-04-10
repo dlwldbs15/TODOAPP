@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import type { Recurrence, RecurrenceType } from '../types/todo'
 
 interface AddTodoProps {
@@ -18,6 +18,14 @@ export function AddTodo({ onAdd }: AddTodoProps) {
   const [showRecurrence, setShowRecurrence] = useState(false)
   const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>('daily')
   const [recurrenceInterval, setRecurrenceInterval] = useState(1)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto'
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`
+    }
+  }, [text])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -37,23 +45,25 @@ export function AddTodo({ onAdd }: AddTodoProps) {
 
   return (
     <form onSubmit={handleSubmit} className="mb-8">
-      <div className="relative">
-        <input
-          type="text"
+      <div className="rounded-2xl bg-white dark:bg-slate-800 shadow-lg focus-within:ring-2 focus-within:ring-indigo-500 transition-all">
+        <textarea
+          ref={textareaRef}
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="할 일을 입력하세요..."
-          className="w-full p-4 pr-36 rounded-2xl bg-white dark:bg-slate-800 shadow-lg
-            outline-none focus:ring-2 focus:ring-indigo-500 transition-all
+          rows={1}
+          className="w-full px-4 pt-4 pb-2 rounded-t-2xl bg-transparent
+            outline-none
             text-slate-900 dark:text-slate-100
-            placeholder-slate-400 dark:placeholder-slate-500"
+            placeholder-slate-400 dark:placeholder-slate-500
+            resize-none overflow-hidden"
         />
-        <div className="absolute right-2 top-2 bottom-2 flex gap-1">
+        <div className="flex items-center justify-end gap-1 px-2 pb-2">
           {/* 주기 반복 버튼 */}
           <button
             type="button"
             onClick={() => setShowRecurrence(!showRecurrence)}
-            className={`px-3 rounded-xl transition-colors ${
+            className={`px-3 py-1.5 rounded-xl transition-colors ${
               showRecurrence
                 ? 'bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400'
                 : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600'
@@ -68,7 +78,7 @@ export function AddTodo({ onAdd }: AddTodoProps) {
           <button
             type="button"
             onClick={() => setShowReminder(!showReminder)}
-            className={`px-3 rounded-xl transition-colors ${
+            className={`px-3 py-1.5 rounded-xl transition-colors ${
               showReminder || reminder
                 ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'
                 : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600'
@@ -82,7 +92,7 @@ export function AddTodo({ onAdd }: AddTodoProps) {
           <button
             type="submit"
             disabled={!text.trim()}
-            className="px-4 bg-indigo-600 text-white rounded-xl
+            className="px-4 py-1.5 bg-indigo-600 text-white rounded-xl
               hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed
               transition-colors font-medium"
           >

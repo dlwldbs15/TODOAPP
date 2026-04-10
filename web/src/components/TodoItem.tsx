@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import type { Todo, Recurrence, RecurrenceType } from '../types/todo'
@@ -52,6 +52,15 @@ export function TodoItem({ id, todo, index, isCarryover = false, onToggle, onPin
   const [editRecurrenceEnabled, setEditRecurrenceEnabled] = useState(!!todo.recurrence)
   const [editRecurrenceType, setEditRecurrenceType] = useState<RecurrenceType>(todo.recurrence?.type || 'daily')
   const [editRecurrenceInterval, setEditRecurrenceInterval] = useState(todo.recurrence?.interval || 1)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    if (isEditing && textareaRef.current) {
+      const el = textareaRef.current
+      el.style.height = 'auto'
+      el.style.height = `${el.scrollHeight}px`
+    }
+  }, [isEditing, editText])
 
   const {
     attributes,
@@ -95,30 +104,31 @@ export function TodoItem({ id, todo, index, isCarryover = false, onToggle, onPin
     setIsEditing(false)
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSave()
-    } else if (e.key === 'Escape') {
-      handleCancel()
-    }
-  }
-
   if (isEditing) {
     return (
       <div className="flex flex-col gap-2 p-4 rounded-2xl bg-white dark:bg-slate-800 border-2 border-indigo-500 shadow-sm">
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
+        <div className="flex items-start gap-2">
+          <textarea
+            ref={textareaRef}
             value={editText}
             onChange={(e) => setEditText(e.target.value)}
-            onKeyDown={handleKeyDown}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                handleSave()
+              } else if (e.key === 'Escape') {
+                handleCancel()
+              }
+            }}
             autoFocus
+            rows={1}
             className="flex-1 px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-700
-              text-slate-900 dark:text-slate-100 outline-none"
+              text-slate-900 dark:text-slate-100 outline-none resize-none overflow-hidden"
+            style={{ minHeight: '2rem' }}
           />
           <button
             onClick={handleSave}
-            className="p-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+            className="p-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shrink-0"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -126,7 +136,7 @@ export function TodoItem({ id, todo, index, isCarryover = false, onToggle, onPin
           </button>
           <button
             onClick={handleCancel}
-            className="p-1.5 rounded-lg bg-slate-300 dark:bg-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-400 dark:hover:bg-slate-500 transition-colors"
+            className="p-1.5 rounded-lg bg-slate-300 dark:bg-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-400 dark:hover:bg-slate-500 transition-colors shrink-0"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -209,7 +219,7 @@ export function TodoItem({ id, todo, index, isCarryover = false, onToggle, onPin
     <div
       ref={setNodeRef}
       style={style}
-      className={`group flex items-center p-4 rounded-2xl border shadow-sm transition-all
+      className={`group flex items-start p-4 rounded-2xl border shadow-sm transition-all
         ${isDragging ? 'opacity-50 shadow-lg z-50' : ''}
         ${todo.completed
           ? 'bg-slate-100 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'
@@ -222,7 +232,7 @@ export function TodoItem({ id, todo, index, isCarryover = false, onToggle, onPin
       <button
         {...attributes}
         {...listeners}
-        className="p-1 mr-2 cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 touch-none"
+        className="p-1 mr-2 mt-0.5 cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 touch-none shrink-0"
         title="드래그하여 정렬"
       >
         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -234,13 +244,13 @@ export function TodoItem({ id, todo, index, isCarryover = false, onToggle, onPin
         type="checkbox"
         checked={todo.completed}
         onChange={() => onToggle(index)}
-        className="w-5 h-5 rounded-full border-slate-300 dark:border-slate-600
-          text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+        className="w-5 h-5 mt-0.5 rounded-full border-slate-300 dark:border-slate-600
+          text-indigo-600 focus:ring-indigo-500 cursor-pointer shrink-0"
       />
-      <div className="ml-3 flex-1">
+      <div className="ml-3 flex-1 min-w-0 flex flex-col gap-1">
         <span
           onClick={() => onToggle(index)}
-          className={`cursor-pointer ${
+          className={`cursor-pointer break-all whitespace-pre-wrap w-full ${
             todo.completed
               ? 'line-through text-slate-400 dark:text-slate-500'
               : 'text-slate-700 dark:text-slate-200'
@@ -248,31 +258,31 @@ export function TodoItem({ id, todo, index, isCarryover = false, onToggle, onPin
         >
           {todo.text}
         </span>
-        {isCarryover && todo.originalDate && (
-          <span className="ml-2 text-xs text-amber-600 dark:text-amber-400">
-            {formatDateLabel(todo.originalDate)}에서 넘어옴
-          </span>
-        )}
-        {todo.reminder && (
-          <span className="ml-2 text-xs text-indigo-500 dark:text-indigo-400 flex items-center gap-1">
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-            {formatReminderLabel(todo.reminder)}
-          </span>
-        )}
-        {todo.recurrence && (
-          <span className="ml-2 text-xs text-green-500 dark:text-green-400 flex items-center gap-1">
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            {formatRecurrenceLabel(todo.recurrence)}
-          </span>
-        )}
-      </div>
-
-      {/* Action buttons - pin/bookmark always visible if active, others on hover */}
-      <div className="flex gap-1">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+          {isCarryover && todo.originalDate && (
+            <span className="text-xs text-amber-600 dark:text-amber-400">
+              {formatDateLabel(todo.originalDate)}에서 넘어옴
+            </span>
+          )}
+          {todo.reminder && (
+            <span className="text-xs text-indigo-500 dark:text-indigo-400 flex items-center gap-1">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+              {formatReminderLabel(todo.reminder)}
+            </span>
+          )}
+          {todo.recurrence && (
+            <span className="text-xs text-green-500 dark:text-green-400 flex items-center gap-1">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              {formatRecurrenceLabel(todo.recurrence)}
+            </span>
+          )}
+        </div>
+        {/* Action buttons - 텍스트 아래 우측 정렬 */}
+        <div className="flex justify-end gap-1">
         {/* Pin button - 핀 모양 */}
         <button
           onClick={(e) => {
@@ -331,6 +341,7 @@ export function TodoItem({ id, todo, index, isCarryover = false, onToggle, onPin
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
           </svg>
         </button>
+        </div>
       </div>
     </div>
   )

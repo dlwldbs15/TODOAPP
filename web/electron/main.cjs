@@ -143,11 +143,11 @@ function loadTodos(date) {
             const trimmed = line.trim();
             if (trimmed.startsWith('- [ ]')) {
                 const { cleanText, meta } = parseMetadata(trimmed.slice(6));
-                todos.push({ text: cleanText, completed: false, ...meta });
+                todos.push({ text: cleanText.replace(/\\n/g, '\n'), completed: false, ...meta });
             }
             else if (trimmed.startsWith('- [x]') || trimmed.startsWith('- [X]')) {
                 const { cleanText, meta } = parseMetadata(trimmed.slice(6));
-                todos.push({ text: cleanText, completed: true, ...meta });
+                todos.push({ text: cleanText.replace(/\\n/g, '\n'), completed: true, ...meta });
             }
         }
         return todos;
@@ -191,21 +191,21 @@ function saveTodos(date, todos) {
     if (pinned.length > 0) {
         content += `## 📌 고정\n\n`;
         for (const todo of pinned) {
-            content += `- [ ] ${todo.text}${serializeMetadata(todo)}\n`;
+            content += `- [ ] ${todo.text.replace(/\n/g, '\\n')}${serializeMetadata(todo)}\n`;
         }
         content += '\n';
     }
     if (incomplete.length > 0) {
         content += `## 미완료\n\n`;
         for (const todo of incomplete) {
-            content += `- [ ] ${todo.text}${serializeMetadata(todo)}\n`;
+            content += `- [ ] ${todo.text.replace(/\n/g, '\\n')}${serializeMetadata(todo)}\n`;
         }
         content += '\n';
     }
     if (completed.length > 0) {
         content += `## 완료\n\n`;
         for (const todo of completed) {
-            content += `- [x] ${todo.text}${serializeMetadata(todo)}\n`;
+            content += `- [x] ${todo.text.replace(/\n/g, '\\n')}${serializeMetadata(todo)}\n`;
         }
     }
     try {
