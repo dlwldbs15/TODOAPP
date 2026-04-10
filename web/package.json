@@ -1,7 +1,7 @@
 {
   "name": "todo-app",
   "private": true,
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "TODO App with Obsidian Integration",
   "main": "electron/main.cjs",
   "type": "module",
@@ -89,7 +89,8 @@
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": false,
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico",
       "installerHeaderIcon": "build/icon.ico"
