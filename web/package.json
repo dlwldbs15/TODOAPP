@@ -1,7 +1,7 @@
 {
   "name": "todo-app",
   "private": true,
-  "version": "1.4.3",
+  "version": "1.4.4",
   "description": "TODO App with Obsidian Integration",
   "main": "electron/main.cjs",
   "type": "module",
@@ -85,7 +85,7 @@
     "win": {
       "target": "nsis",
       "icon": "build/icon.ico",
-      "artifactName": "${productName}-Setup-${version}.${ext}"
+      "artifactName": "TodoApp-Setup-${version}.${ext}"
     },
     "nsis": {
       "oneClick": false,
